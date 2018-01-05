@@ -1,0 +1,216 @@
+//
+// Copyright 2017 netmuncher Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
+//
+
+#![allow(unknown_lints)]
+#![allow(clippy)]
+
+use error::{self, ErrorKind};
+use parse::component::*;
+use parse::token::Tok;
+
+use lalrpop_util::ParseError;
+
+grammar;
+
+extern {
+    type Location = usize;
+    type Error = error::Error;
+    enum Tok {
+        "{" => Tok::LBrace,
+        "}" => Tok::RBrace,
+        "(" => Tok::LParen,
+        ")" => Tok::RParen,
+        "[" => Tok::LBracket,
+        "]" => Tok::RBracket,
+        "=" => Tok::Equals,
+        ".." => Tok::DotDot,
+        "," => Tok::Comma,
+        ":" => Tok::Colon,
+        ";" => Tok::Semicolon,
+        Num => Tok::Num(<u32>),
+        Quote => Tok::Quote(<String>),
+        Symbol => Tok::Symbol(<String>),
+        "component" => Tok::KeywordComponent,
+        "footprint" => Tok::KeywordFootprint,
+        "input" => Tok::KeywordInput,
+        "net" => Tok::KeywordNet,
+        "noconnect" => Tok::KeywordNoConnect,
+        "output" => Tok::KeywordOutput,
+        "passive" => Tok::KeywordPassive,
+        "pin" => Tok::KeywordPin,
+        "power" => Tok::KeywordPower,
+        "prefix" => Tok::KeywordPrefix,
+        "tristate" => Tok::KeywordTristate,
+    }
+}
+
+SymbolList: Vec<String> = {
+    <sl:SymbolList> "," <s:Symbol> => {
+        let mut result = sl;
+        result.push(s);
+        result
+    },
+    <s:Symbol> "[" <n:Num> "]" => {
+        vec![format!("{}{}", s, n)]
+    },
+    <s:Symbol> "[" <start:Num> ":" <finish:Num> "]" => {
+        let mut result = Vec::new();
+        let range = if start <= finish {
+            (start..(finish+1))
+        } else {
+            (finish..(start+1))
+        };
+        result.extend(range.map(&|i| format!("{}{}", s, i)));
+        result
+    },
+    Symbol => vec![<>],
+};
+
+NumRange: Vec<u32> = {
+    "(" <start:Num> ".." <end:Num> ")" => {
+        let mut result = Vec::new();
+        if start <= end {
+            result.extend(start..(end+1));
+        } else {
+            result.extend((end..(start+1)).rev());
+        }
+        result
+    }
+};
+
+NumList: Vec<u32> = {
+    <l:NumList> "," <n:Num> => {
+        let mut result = l;
+        result.push(n);
+        result
+    },
+    <l:NumList> "," <nr:NumRange> => {
+        let mut result = l;
+        result.extend(&nr);
+        result
+    },
+    <NumRange> => <>,
+    <Num> => vec![<>],
+};
+
+InstanceParam: Vec<(String, String)> = {
+    <left:SymbolList> ":" "noconnect" ";" => {
+        let result = left.iter().cloned().zip(left.iter().map(|_| "noconnect".into())).collect();
+        result
+    },
+    <left:SymbolList> ":" <right:SymbolList> ";" =>? {
+        if right.len() != left.len() && right.len() > 1 {
+            return Err(ParseError::User {
+                error: ErrorKind::ParseError(
+                    format!("expected {} connections on the right, but found {}",
+                        left.len(), right.len())).into()
+            });
+        }
+
+        let result: Vec<(String, String)> = if right.len() == 1 {
+            left.iter().cloned().zip(left.iter().map(&|_| right[0].clone())).collect()
+        } else {
+            left.iter().cloned().zip(right.iter().cloned()).collect()
+        };
+        Ok(result)
+    }
+};
+
+InstanceParams: Vec<(String, String)> = {
+    <ips:InstanceParams> <ip:InstanceParam> => {
+        let mut result = ips;
+        result.extend(ip.into_iter());
+        result
+    },
+    <InstanceParam> => <>
+};
+
+Instance: Instance = {
+    <name:Symbol> "{" <params:InstanceParams> "}" => {
+        Instance {
+            name: name,
+            connections: params,
+        }
+    }
+};
+
+PinType: PinType = {
+    "input" => PinType::Input,
+    "output" => PinType::Output,
+    "passive" => PinType::Passive,
+    "power" => PinType::Power,
+    "tristate" => PinType::Tristate,
+    "noconnect" => PinType::NoConnect,
+}; 
+
+StartComponent: Component = {
+    "component" <name:Symbol> "{" => Component::new(name),
+};
+
+ContinueComponent: Component = {
+    <cc:ContinueComponent> "footprint" "=" <t:Quote> ";" => {
+        let mut component = cc;
+        component.footprint = Some(t);
+        component
+    },
+    <cc:ContinueComponent> "prefix" "=" <t:Quote> ";" => {
+        let mut component = cc;
+        component.prefix = Some(t);
+        component
+    },
+    <cc:ContinueComponent> "pin" <names:SymbolList> ":" <pt:PinType> "=" <nl:NumList> ";" =>? {
+        if names.len() != nl.len() {
+            return Err(ParseError::User {
+                error: ErrorKind::ParseError(
+                    format!("expected {} pin numbers on the right, but found {}",
+                        names.len(), nl.len())).into()
+            });
+        }
+
+        let mut component = cc;
+        for (index, name) in names.iter().enumerate() {
+            component.pins.add_pin(Pin {
+                name: name.clone(),
+                typ: pt,
+                num: PinNum(nl[index]),
+            }).map_err(|e| {
+                ParseError::User {
+                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
+                        format!("error in component {}", component.name)
+                    )))
+                }
+            })?;
+        }
+        Ok(component)
+    },
+    <cc:ContinueComponent> "net" <sl:SymbolList> ";" => {
+        let mut component = cc;
+        component.nets.extend(sl.into_iter());
+        component
+    },
+    <cc:ContinueComponent> <inst:Instance> => {
+        let mut component = cc;
+        component.instances.push(inst);
+        component
+    },
+    <StartComponent> => <>,
+};
+
+CompleteComponent: Component = {
+    <ContinueComponent> "}" => <>
+};
+
+pub Components: Vec<Component> = {
+    <cl:Components> <cc:CompleteComponent> => {
+        let mut result = cl;
+        result.push(cc);
+        result
+    },
+    <CompleteComponent> => vec![<>],
+};
