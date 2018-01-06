@@ -50,6 +50,7 @@ pub struct Pin {
 pub struct Instance {
     pub tag: SrcTag,
     pub name: String,
+    pub value: Option<String>,
     pub connections: Vec<(String, String)>,
 }
 
@@ -58,6 +59,7 @@ impl Instance {
         Instance {
             tag: tag,
             name: name,
+            value: None,
             connections: Vec::new(),
         }
     }

@@ -40,6 +40,7 @@ component Indicator {
     }
 
     R {
+        value = "220";
         A: LTR;
         B: GND;
     }

@@ -10,7 +10,7 @@
       (value LED)
       (footprint led))
     (comp (ref R1)
-      (value R)
+      (value 220)
       (footprint resistor))
     (comp (ref U1)
       (value NANDGate)

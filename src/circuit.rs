@@ -202,7 +202,7 @@ fn instantiate(
             let reference = ref_gen.next(prefix);
             circuit.instances.push(ComponentInstance::new(
                 reference.clone(),
-                component.name.clone(),
+                instance.value.as_ref().unwrap_or_else(|| &component.name).clone(),
                 component.footprint.as_ref().unwrap().clone(),
             ));
             for pin in &component.pins {

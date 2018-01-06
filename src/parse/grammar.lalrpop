@@ -49,6 +49,7 @@ extern {
         "power_out" => Tok::KeywordPowerOut,
         "prefix" => Tok::KeywordPrefix,
         "tristate" => Tok::KeywordTristate,
+        "value" => Tok::KeywordValue,
     }
 }
 
@@ -133,11 +134,24 @@ InstanceParams: Vec<(String, String)> = {
     <InstanceParam> => <>
 };
 
+InstanceValue: String = {
+    "value" "=" <val:Quote> ";" => val,
+};
+
 Instance: Instance = {
     <offset:@L> <name:Symbol> "{" <params:InstanceParams> "}" => {
         Instance {
             tag: locator.tag(offset),
             name: name,
+            value: None,
+            connections: params,
+        }
+    },
+    <offset:@L> <name:Symbol> "{" <value:InstanceValue> <params:InstanceParams> "}" => {
+        Instance {
+            tag: locator.tag(offset),
+            name: name,
+            value: Some(value),
             connections: params,
         }
     },
@@ -145,6 +159,7 @@ Instance: Instance = {
         Instance {
             tag: locator.tag(offset),
             name: name,
+            value: None,
             connections: Vec::new(),
         }
     }
