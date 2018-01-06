@@ -40,6 +40,7 @@ pub enum Tok {
     KeywordPowerIn,
     KeywordPowerOut,
     KeywordPrefix,
+    KeywordRequire,
     KeywordTristate,
     KeywordValue,
 }
@@ -72,6 +73,7 @@ impl fmt::Display for Tok {
             Tok::KeywordPowerIn => write!(f, "power_in"),
             Tok::KeywordPowerOut => write!(f, "power_out"),
             Tok::KeywordPrefix => write!(f, "prefix"),
+            Tok::KeywordRequire => write!(f, "require"),
             Tok::KeywordTristate => write!(f, "tristate"),
             Tok::KeywordValue => write!(f, "value"),
         }
@@ -159,6 +161,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                         "power_in" => tokens.push((start, Tok::KeywordPowerIn, start + 8)),
                         "power_out" => tokens.push((start, Tok::KeywordPowerOut, start + 9)),
                         "prefix" => tokens.push((start, Tok::KeywordPrefix, start + 6)),
+                        "require" => tokens.push((start, Tok::KeywordRequire, start + 7)),
                         "tristate" => tokens.push((start, Tok::KeywordTristate, start + 8)),
                         "value" => tokens.push((start, Tok::KeywordValue, start + 8)),
                         _ => tokens.push((start, Tok::Symbol(symbol), start + symbol_len)),

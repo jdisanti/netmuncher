@@ -20,7 +20,6 @@ enum ValidationResult {
 }
 
 pub fn check_connection(units: &SrcUnits, instance: &Instance, current: &Node, others: &[Node]) -> error::Result<()> {
-println!("check_connection: {:?} vs. {:?}", current, others);
     for other in others {
         match check(current.pin_type, other.pin_type) {
             ValidationResult::Valid => {}
@@ -55,7 +54,6 @@ fn check(first: PinType, second: PinType) -> ValidationResult {
     use parse::component::PinType::*;
     use self::ValidationResult::*;
 
-println!("{:?} vs. {:?}", first, second);
     match first {
         Input => match second {
             Input | Output | Passive | PowerIn | PowerOut | Tristate => Valid,

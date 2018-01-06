@@ -1,0 +1,23 @@
+require "./some_module.nm";
+
+component Main {
+    net A, B, C;
+
+    R {
+        value = "220";
+        A: A;
+        B: B;
+    }
+
+    R {
+        value = "470";
+        A: B;
+        B: C;
+    }
+
+    R {
+        value = "10k";
+        A: C;
+        B: A;
+    }
+}

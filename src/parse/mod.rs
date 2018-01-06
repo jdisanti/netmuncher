@@ -22,9 +22,21 @@ pub mod src_unit;
 use parse::component::Component;
 use parse::src_unit::Locator;
 
-pub fn parse_components(locator: &Locator, source: &str) -> error::Result<Vec<Component>> {
+#[derive(Default)]
+pub struct ParseResult {
+    pub requires: Vec<String>,
+    pub components: Vec<Component>,
+}
+
+impl ParseResult {
+    pub fn new() -> ParseResult {
+        Default::default()
+    }
+}
+
+pub fn parse_components(locator: &Locator, source: &str) -> error::Result<ParseResult> {
     let tokens = token::tokenize(locator, source)?;
-    grammar::parse_Components(&locator, tokens.into_iter()).map_err(|e| match e {
+    grammar::parse_Source(&locator, tokens.into_iter()).map_err(|e| match e {
         ParseError::InvalidToken { location } => {
             error::ErrorKind::ParseError(format!("{}: invalid token", locator.locate(location))).into()
         }

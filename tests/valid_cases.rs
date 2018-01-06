@@ -32,3 +32,10 @@ fn nand_indicator() {
     let actual = compile("tests/valid/nand_indicator.nm");
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn module_test() {
+    let expected = load("tests/valid/module_test/main.net");
+    let actual = compile("tests/valid/module_test/main.nm");
+    assert_eq!(expected, actual);
+}

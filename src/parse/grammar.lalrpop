@@ -14,6 +14,7 @@ use error::{self, ErrorKind};
 use parse::component::*;
 use parse::token::Tok;
 use parse::src_unit::Locator;
+use parse::ParseResult;
 
 use lalrpop_util::ParseError;
 
@@ -48,6 +49,7 @@ extern {
         "power_in" => Tok::KeywordPowerIn,
         "power_out" => Tok::KeywordPowerOut,
         "prefix" => Tok::KeywordPrefix,
+        "require" => Tok::KeywordRequire,
         "tristate" => Tok::KeywordTristate,
         "value" => Tok::KeywordValue,
     }
@@ -239,11 +241,29 @@ CompleteComponent: Component = {
     <ContinueComponent> "}" => <>
 };
 
-pub Components: Vec<Component> = {
-    <cl:Components> <cc:CompleteComponent> => {
-        let mut result = cl;
-        result.push(cc);
+Require: String = {
+    "require" <module:Quote> ";" => module,
+};
+
+pub Source: ParseResult = {
+    <r:Source> <module:Require> => {
+        let mut result = r;
+        result.requires.push(module);
         result
     },
-    <CompleteComponent> => vec![<>],
+    <r:Source> <component:CompleteComponent> => {
+        let mut result = r;
+        result.components.push(component);
+        result
+    },
+    <module:Require> => {
+        let mut result = ParseResult::new();
+        result.requires.push(module);
+        result
+    },
+    <component:CompleteComponent> => {
+        let mut result = ParseResult::new();
+        result.components.push(component);
+        result
+    },
 };

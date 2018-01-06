@@ -1,0 +1,7 @@
+component R {
+    prefix = "R";
+    footprint = "resistor";
+
+    pin A: passive = 1;
+    pin B: passive = 2;
+}

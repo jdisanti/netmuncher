@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 
 use erc;
 use error::{self, ErrorKind};
@@ -106,11 +107,35 @@ impl Circuit {
     }
 
     pub fn compile(file_name: &str) -> error::Result<Circuit> {
-        let mut units = SrcUnits::new();
-        let unit_id = units.push_unit(file_name.into(), load_file(file_name)?);
-        let locator = Locator::new(&units, unit_id);
+        let main_file = Path::new(file_name).file_name().unwrap();
+        let main_path = Path::new(file_name).parent().unwrap();
 
-        let components = parse::parse_components(&locator, units.source(unit_id))?;
+        let mut units = SrcUnits::new();
+
+        let mut modules_to_require: Vec<PathBuf> = Vec::new();
+        let mut modules_required: Vec<PathBuf> = Vec::new();
+        modules_to_require.push(module_path(&main_path, &main_file).unwrap());
+
+        let mut components: Vec<Component> = Vec::new();
+        while let Some(path) = modules_to_require.pop() {
+            if !modules_required.contains(&path) {
+                modules_required.push(path.clone());
+                let unit_id = units.push_unit(
+                    path.to_str().unwrap().into(),
+                    load_file(path)?,
+                );
+                let locator = Locator::new(&units, unit_id);
+                let parse_result = parse::parse_components(&locator, units.source(unit_id))?;
+                modules_to_require.extend(
+                    parse_result
+                        .requires
+                        .into_iter()
+                        .filter_map(|r| module_path(&main_path, &r)),
+                );
+                components.extend(parse_result.components.into_iter());
+            }
+        }
+
         Circuit::from_components(&units, components)
     }
 
@@ -182,11 +207,20 @@ impl Circuit {
     }
 }
 
-fn load_file(file_name: &str) -> error::Result<String> {
-    let mut file = File::open(file_name)?;
+fn load_file<P: AsRef<Path>>(file_name: P) -> error::Result<String> {
+    let mut file = File::open(file_name.as_ref())?;
     let mut file_contents = String::new();
     file.read_to_string(&mut file_contents)?;
     Ok(file_contents)
+}
+
+fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathBuf> {
+    let path = main_path.join(module_name);
+    if path.is_file() {
+        Some(path)
+    } else {
+        None
+    }
 }
 
 fn instantiate(
@@ -202,7 +236,11 @@ fn instantiate(
             let reference = ref_gen.next(prefix);
             circuit.instances.push(ComponentInstance::new(
                 reference.clone(),
-                instance.value.as_ref().unwrap_or_else(|| &component.name).clone(),
+                instance
+                    .value
+                    .as_ref()
+                    .unwrap_or_else(|| &component.name)
+                    .clone(),
                 component.footprint.as_ref().unwrap().clone(),
             ));
             for pin in &component.pins {
