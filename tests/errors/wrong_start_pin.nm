@@ -1,0 +1,5 @@
+
+component Main {
+    pin FOO: input = 0;
+    pin BAR: input = 1;
+}

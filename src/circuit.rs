@@ -128,8 +128,8 @@ impl Circuit {
                     component.name
                 )));
             }
-            component.validate_parameters()?;
-            component.validate_pins()?;
+            component.validate_parameters(units)?;
+            component.validate_pins(units)?;
             components.insert(component.name.clone(), component);
         }
 
@@ -138,7 +138,10 @@ impl Circuit {
             let mut circuit = Circuit::new();
 
             if !main_component.pins.is_empty() {
-                return Err(err!("component Main cannot have pins"));
+                return Err(err!(format!(
+                    "{}: component Main cannot have pins",
+                    units.locate(main_component.tag)
+                )));
             }
 
             let empty_net_map = BTreeMap::new();

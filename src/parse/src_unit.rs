@@ -36,6 +36,10 @@ impl SrcUnits {
         Default::default()
     }
 
+    pub fn name(&self, unit_id: usize) -> &String {
+        &self.units[unit_id].name
+    }
+
     pub fn source(&self, unit_id: usize) -> &String {
         &self.units[unit_id].source
     }
@@ -68,6 +72,10 @@ impl<'a> Locator<'a> {
             src_units: src_units,
             current_unit: current_unit,
         }
+    }
+
+    pub fn name(&self) -> &String {
+        self.src_units.name(self.current_unit)
     }
 
     pub fn locate(&self, offset: usize) -> String {

@@ -10,6 +10,7 @@
 use std::fmt;
 
 use parse::src_tag::SrcTag;
+use parse::src_unit::SrcUnits;
 use error;
 
 macro_rules! err {
@@ -163,6 +164,7 @@ impl<'a> IntoIterator for &'a NetList {
 
 #[derive(Debug)]
 pub struct Component {
+    pub tag: SrcTag,
     pub name: String,
     pub footprint: Option<String>,
     pub prefix: Option<String>,
@@ -172,8 +174,9 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn new(name: String) -> Component {
+    pub fn new(tag: SrcTag, name: String) -> Component {
         Component {
+            tag: tag,
             name: name,
             footprint: None,
             prefix: None,
@@ -183,20 +186,22 @@ impl Component {
         }
     }
 
-    pub fn validate_parameters(&self) -> error::Result<()> {
+    pub fn validate_parameters(&self, units: &SrcUnits) -> error::Result<()> {
         if self.footprint.is_some() || self.prefix.is_some() {
             if !self.footprint.is_some() || self.footprint.as_ref().unwrap().is_empty() {
-                err!(format!("component {} must specify a footprint", self.name));
+                err!(format!("{}: component {} must specify a footprint", units.locate(self.tag), self.name));
             }
             if !self.prefix.is_some() || self.prefix.as_ref().unwrap().is_empty() {
                 err!(format!(
-                    "component {} must specify a reference prefix",
+                    "{}: component {} must specify a reference prefix",
+                    units.locate(self.tag),
                     self.name
                 ));
             }
             if !self.instances.is_empty() {
                 err!(format!(
-                    "component {} cannot have instances if it has a footprint and prefix",
+                    "{}: component {} cannot have instances if it has a footprint and prefix",
+                    units.locate(self.tag),
                     self.name
                 ));
             }
@@ -204,7 +209,7 @@ impl Component {
         Ok(())
     }
 
-    pub fn validate_pins(&self) -> error::Result<()> {
+    pub fn validate_pins(&self, units: &SrcUnits) -> error::Result<()> {
         if self.pins.is_empty() {
             return Ok(());
         }
@@ -213,7 +218,8 @@ impl Component {
             let pin_num = PinNum((i + 1) as u32);
             if !self.pins.find_by_num(pin_num).is_some() {
                 err!(format!(
-                    "component {} is missing some pins (take a look at pin {})",
+                    "{}: component {} is missing some pins (take a look at pin {})",
+                    units.locate(self.tag),
                     self.name, pin_num
                 ));
             }

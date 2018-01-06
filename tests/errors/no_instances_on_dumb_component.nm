@@ -1,0 +1,17 @@
+component Child {
+    prefix = "J";
+    footprint = "bar";
+
+    pin A: input = 1;
+}
+
+component Invalid {
+    prefix = "U";
+    footprint = "foo";
+
+    net SomeNet;
+
+    Child {
+        A: SomeNet;
+    }
+}

@@ -1,0 +1,33 @@
+component C {
+    prefix = "C";
+    footprint = "capacitor";
+
+    pin A: input = 1;
+    pin B: input = 2;
+}
+
+component Power {
+    prefix = "J";
+    footprint = "power";
+
+    pin VCC: input = 1;
+    pin GND: input = 2;
+}
+
+component Main {
+    net VCC, GND, A;
+
+    Power {
+        VCC: VCC;
+        GND: GND;
+    }
+
+    C {
+        A: VCC;
+    }
+
+    C {
+        A: A;
+        B: GND;
+    }
+}

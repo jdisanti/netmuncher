@@ -1,0 +1,4 @@
+component Main {
+    net A;
+    net A;
+}

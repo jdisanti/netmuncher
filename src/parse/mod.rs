@@ -35,7 +35,10 @@ pub fn parse_components(locator: &Locator, source: &str) -> error::Result<Vec<Co
                 token,
                 expected.join(",")
             )).into(),
-            None => error::ErrorKind::ParseError("unexpected end of file".into()).into(),
+            None => error::ErrorKind::ParseError(format!(
+                "{}: unexpected end of file",
+                locator.name()
+            ).into()).into(),
         },
         ParseError::ExtraToken { token } => error::ErrorKind::ParseError(format!(
             "{}: extra token {}",

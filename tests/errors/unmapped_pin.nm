@@ -1,0 +1,26 @@
+
+component A {
+    pin X: input = 1;
+    pin Y: input = 2;
+}
+
+component B {
+    net H;
+
+    pin G: input = 1;
+
+    A {
+        X: H;
+        Y: G;
+    }
+
+    A {
+        X: G;
+        Y: H;
+    }
+}
+
+component Main {
+    B {
+    }
+}

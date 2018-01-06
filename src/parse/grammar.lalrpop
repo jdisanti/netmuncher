@@ -139,6 +139,13 @@ Instance: Instance = {
             name: name,
             connections: params,
         }
+    },
+    <offset:@L> <name:Symbol> "{" "}" => {
+        Instance {
+            tag: locator.tag(offset),
+            name: name,
+            connections: Vec::new(),
+        }
     }
 };
 
@@ -152,7 +159,7 @@ PinType: PinType = {
 }; 
 
 StartComponent: Component = {
-    "component" <name:Symbol> "{" => Component::new(name),
+    <offset:@L> "component" <name:Symbol> "{" => Component::new(locator.tag(offset), name),
 };
 
 ContinueComponent: Component = {

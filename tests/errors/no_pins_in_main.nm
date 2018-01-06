@@ -1,0 +1,3 @@
+component Main {
+    pin A: input = 1;
+}
