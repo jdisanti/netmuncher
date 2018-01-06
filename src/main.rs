@@ -1,5 +1,5 @@
 //
-// Copyright 2017 netmuncher Developers
+// Copyright 2018 netmuncher Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -14,9 +14,9 @@ extern crate regex;
 #[macro_use]
 extern crate error_chain;
 
-use std::fs::File;
-use std::io::prelude::*;
 use std::process;
+
+use error_chain::ChainedError;
 
 mod circuit;
 mod error;
@@ -34,26 +34,13 @@ fn main() {
         )
         .get_matches();
 
-    let input_source = {
-        let mut file = match File::open(matches.value_of("INPUT").unwrap()) {
-            Ok(file) => file,
-            Err(e) => {
-                println!("Failed to open input source file: {}", e);
-                process::exit(1);
-            }
-        };
-        let mut file_contents = String::new();
-        match file.read_to_string(&mut file_contents) {
-            Err(e) => {
-                println!("Failed to read input source file: {}", e);
-                process::exit(1);
-            }
-            _ => {}
+    let input_file_name = matches.value_of("INPUT").unwrap();
+    let circuit = match circuit::Circuit::compile(input_file_name) {
+        Ok(circuit) => circuit,
+        Err(err) => {
+            println!("{}", err.display_chain().to_string());
+            process::exit(1);
         }
-        file_contents
     };
-
-    let components = parse::parse_components(&input_source).unwrap();
-    let circuit = circuit::Circuit::from_components(components).unwrap();
     println!("{}", circuit);
 }

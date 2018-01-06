@@ -1,5 +1,5 @@
 //
-// Copyright 2017 netmuncher Developers
+// Copyright 2018 netmuncher Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -9,7 +9,12 @@
 
 use std::collections::BTreeMap;
 use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
 
+use parse;
+use parse::src_tag::SrcTag;
+use parse::src_unit::{Locator, SrcUnits};
 use parse::component::{Component, Instance, PinNum, PinType};
 use error;
 
@@ -105,7 +110,16 @@ impl Circuit {
         Default::default()
     }
 
-    pub fn from_components(input: Vec<Component>) -> error::Result<Circuit> {
+    pub fn compile(file_name: &str) -> error::Result<Circuit> {
+        let mut units = SrcUnits::new();
+        let unit_id = units.push_unit(file_name.into(), load_file(file_name)?);
+        let locator = Locator::new(&units, unit_id);
+
+        let components = parse::parse_components(&locator, units.source(unit_id))?;
+        Circuit::from_components(&units, components)
+    }
+
+    fn from_components(units: &SrcUnits, input: Vec<Component>) -> error::Result<Circuit> {
         let mut components = BTreeMap::new();
         for component in input {
             if components.contains_key(&component.name) {
@@ -128,8 +142,9 @@ impl Circuit {
             }
 
             let empty_net_map = BTreeMap::new();
-            let main_instance = Instance::new("Main".into());
+            let main_instance = Instance::new(SrcTag::invalid(), "Main".into());
             instantiate(
+                units,
                 &mut ref_gen,
                 &mut circuit,
                 &components,
@@ -164,7 +179,15 @@ impl Circuit {
     }
 }
 
+fn load_file(file_name: &str) -> error::Result<String> {
+    let mut file = File::open(file_name)?;
+    let mut file_contents = String::new();
+    file.read_to_string(&mut file_contents)?;
+    Ok(file_contents)
+}
+
 fn instantiate(
+    units: &SrcUnits,
     ref_gen: &mut ReferenceGenerator,
     circuit: &mut Circuit,
     components: &BTreeMap<String, Component>,
@@ -197,15 +220,19 @@ fn instantiate(
                             }
                         } else {
                             return Err(err!(format!(
-                                "cannot find connection named {} on component {}",
-                                connection_name, component.name
+                                "{}: cannot find connection named {} on component {}",
+                                units.locate(instance.tag),
+                                connection_name,
+                                component.name
                             )));
                         }
                     }
                 } else {
                     return Err(err!(format!(
-                        "no connection stated for pin {} on component {}",
-                        pin.name, component.name
+                        "{}: no connection stated for pin {} on component {}",
+                        units.locate(instance.tag),
+                        pin.name,
+                        component.name
                     )));
                 }
             }
@@ -222,19 +249,22 @@ fn instantiate(
                     new_net_map.insert(pin.name.clone(), net_name.clone());
                 } else {
                     return Err(err!(format!(
-                        "unmapped pin named {} in instantiation of component {}",
-                        pin.name, component.name
+                        "{}: unmapped pin named {} in instantiation of component {}",
+                        units.locate(instance.tag),
+                        pin.name,
+                        component.name
                     )));
                 }
             }
             for instance in &component.instances {
-                instantiate(ref_gen, circuit, &components, instance, &new_net_map)?;
+                instantiate(units, ref_gen, circuit, &components, instance, &new_net_map)?;
             }
         }
         Ok(())
     } else {
         Err(err!(format!(
-            "cannot find component definition for {}",
+            "{}: cannot find component definition for {}",
+            units.locate(instance.tag),
             instance.name
         )))
     }

@@ -1,5 +1,5 @@
 //
-// Copyright 2017 netmuncher Developers
+// Copyright 2018 netmuncher Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -9,6 +9,7 @@
 
 use std::fmt;
 
+use parse::src_tag::SrcTag;
 use error;
 
 macro_rules! err {
@@ -45,13 +46,15 @@ pub struct Pin {
 
 #[derive(Debug)]
 pub struct Instance {
+    pub tag: SrcTag,
     pub name: String,
     pub connections: Vec<(String, String)>,
 }
 
 impl Instance {
-    pub fn new(name: String) -> Instance {
+    pub fn new(tag: SrcTag, name: String) -> Instance {
         Instance {
+            tag: tag,
             name: name,
             connections: Vec::new(),
         }

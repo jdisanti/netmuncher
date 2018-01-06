@@ -1,5 +1,5 @@
 //
-// Copyright 2017 netmuncher Developers
+// Copyright 2018 netmuncher Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -8,8 +8,10 @@
 //
 
 use std::str::FromStr;
+use std::fmt;
 
-use error;
+use parse::src_unit::Locator;
+use error::{self, ErrorKind};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Tok {
@@ -40,7 +42,39 @@ pub enum Tok {
     KeywordTristate,
 }
 
-pub fn tokenize(s: &str) -> error::Result<Vec<(usize, Tok, usize)>> {
+impl fmt::Display for Tok {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Tok::LBrace => write!(f, "{{"),
+            Tok::RBrace => write!(f, "}}"),
+            Tok::LParen => write!(f, "("),
+            Tok::RParen => write!(f, ")"),
+            Tok::LBracket => write!(f, "["),
+            Tok::RBracket => write!(f, "]"),
+            Tok::Equals => write!(f, "="),
+            Tok::DotDot => write!(f, ".."),
+            Tok::Comma => write!(f, ","),
+            Tok::Colon => write!(f, ":"),
+            Tok::Semicolon => write!(f, ";"),
+            Tok::Num(num) => write!(f, "{}", num),
+            Tok::Quote(_) => write!(f, "\""),
+            Tok::Symbol(ref sym) => write!(f, "{}", sym),
+            Tok::KeywordComponent => write!(f, "component"),
+            Tok::KeywordFootprint => write!(f, "footprint"),
+            Tok::KeywordInput => write!(f, "input"),
+            Tok::KeywordNet => write!(f, "net"),
+            Tok::KeywordNoConnect => write!(f, "noconnect"),
+            Tok::KeywordOutput => write!(f, "output"),
+            Tok::KeywordPassive => write!(f, "passive"),
+            Tok::KeywordPin => write!(f, "pin"),
+            Tok::KeywordPower => write!(f, "power"),
+            Tok::KeywordPrefix => write!(f, "prefix"),
+            Tok::KeywordTristate => write!(f, "tristate"),
+        }
+    }
+}
+
+pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, usize)>> {
     let mut tokens = vec![];
     let mut chars = s.char_indices();
     let mut lookahead = chars.next();
@@ -63,10 +97,17 @@ pub fn tokenize(s: &str) -> error::Result<Vec<(usize, Tok, usize)>> {
                         if c == '.' {
                             tokens.push((start, Tok::DotDot, start + 2));
                         } else {
-                            unimplemented!("error condition for invalid dot")
+                            bail!(ErrorKind::TokenizationError(format!(
+                                "{}: unexpected character: {}",
+                                locator.locate(start),
+                                c
+                            )));
                         }
                     } else {
-                        unimplemented!("error condition for invalid dot")
+                        bail!(ErrorKind::TokenizationError(format!(
+                            "{}: unexpected dot",
+                            locator.locate(start)
+                        )));
                     }
                 }
                 '"' => {
@@ -119,7 +160,11 @@ pub fn tokenize(s: &str) -> error::Result<Vec<(usize, Tok, usize)>> {
                     continue;
                 }
                 _ => {
-                    panic!("catch all error case: {}, {}", start, c);
+                    bail!(ErrorKind::TokenizationError(format!(
+                        "{}: unexpected character: {}",
+                        locator.locate(start),
+                        c
+                    )));
                 }
             }
         }

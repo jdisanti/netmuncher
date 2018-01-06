@@ -1,5 +1,5 @@
 //
-// Copyright 2017 netmuncher Developers
+// Copyright 2018 netmuncher Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -16,6 +16,7 @@ error_chain! {
     }
 
     foreign_links {
+        Io(::std::io::Error);
     }
 
     errors {
@@ -29,6 +30,10 @@ error_chain! {
         }
         ParseError(msg: String) {
             description("parse error")
+            display("{}", msg)
+        }
+        TokenizationError(msg: String) {
+            description("tokenization error")
             display("{}", msg)
         }
     }
