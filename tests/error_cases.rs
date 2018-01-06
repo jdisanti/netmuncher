@@ -156,3 +156,9 @@ fn empty_circuit() {
         empty circuit: no concrete components\n",
         test("tests/errors/empty_circuit.nm"));
 }
+
+#[test]
+fn single_node_in_net() {
+    assert_eq!("Error: net named SOLO.Main1 needs to have more than one connection\n",
+        test("tests/errors/single_node_in_net.nm"));
+}

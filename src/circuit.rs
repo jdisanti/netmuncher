@@ -179,6 +179,15 @@ impl Circuit {
                 )));
             }
 
+            for net in &circuit.nets {
+                if net.nodes.len() <= 1 {
+                    bail!(ErrorKind::CircuitError(format!(
+                        "net named {} needs to have more than one connection",
+                        net.name,
+                    )));
+                }
+            }
+
             let net_names: Vec<String> = circuit.nets.iter().map(|n| n.name.clone()).collect();
             for net_name in &net_names {
                 if let Some(dot_index) = net_name.find('.') {

@@ -1,0 +1,14 @@
+component Foo {
+    prefix = "U";
+    footprint = "foo";
+
+    pin A: input = 1;
+}
+
+component Main {
+    net SOLO;
+
+    Foo {
+        A: SOLO;
+    }
+}
