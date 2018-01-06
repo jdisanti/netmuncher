@@ -75,12 +75,13 @@ fn check(first: PinType, second: PinType) -> ValidationResult {
         },
         PowerOut => match second {
             Input | Passive | PowerIn => Valid,
-            NoConnect | Output | Tristate | PowerOut => Error,
+            Tristate => Warning,
+            NoConnect | Output | PowerOut => Error,
         },
         Tristate => match second {
             Input | Tristate | Passive => Valid,
-            Output | PowerIn => Warning,
-            NoConnect | PowerOut => Error,
+            Output | PowerIn | PowerOut => Warning,
+            NoConnect => Error,
         },
         NoConnect => Error,
     }
