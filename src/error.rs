@@ -28,6 +28,10 @@ error_chain! {
             description("component error")
             display("{}", msg)
         }
+        InstantiationError(msg: String) {
+            description("instantiation error")
+            display("{}", msg)
+        }
         ParseError(msg: String) {
             description("parse error")
             display("{}", msg)

@@ -13,7 +13,8 @@ extern crate regex;
 #[macro_use]
 extern crate error_chain;
 
-pub mod circuit;
 mod erc;
-pub mod error;
+mod instantiator;
 mod parse;
+pub mod circuit;
+pub mod error;
