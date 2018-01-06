@@ -7,9 +7,9 @@
 // copied, modified, or distributed except according to those terms.
 //
 
-extern crate netmuncher;
-extern crate error_chain;
 extern crate clap;
+extern crate error_chain;
+extern crate netmuncher;
 
 use std::process;
 
@@ -20,7 +20,7 @@ fn main() {
     let matches = clap::App::new("netmuncher")
         .version("0.1")
         .author("John DiSanti")
-        .about("Textual circuit definition to netlist transformer")
+        .about("Hierarchical circuit definition to netlist transformer")
         .arg(
             clap::Arg::with_name("INPUT")
                 .help("input source file")

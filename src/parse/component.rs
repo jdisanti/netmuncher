@@ -195,7 +195,11 @@ impl Component {
     pub fn validate_parameters(&self, units: &SrcUnits) -> error::Result<()> {
         if self.footprint.is_some() || self.prefix.is_some() {
             if !self.footprint.is_some() || self.footprint.as_ref().unwrap().is_empty() {
-                err!(format!("{}: component {} must specify a footprint", units.locate(self.tag), self.name));
+                err!(format!(
+                    "{}: component {} must specify a footprint",
+                    units.locate(self.tag),
+                    self.name
+                ));
             }
             if !self.prefix.is_some() || self.prefix.as_ref().unwrap().is_empty() {
                 err!(format!(
@@ -226,7 +230,8 @@ impl Component {
                 err!(format!(
                     "{}: component {} is missing some pins (take a look at pin {})",
                     units.locate(self.tag),
-                    self.name, pin_num
+                    self.name,
+                    pin_num
                 ));
             }
         }

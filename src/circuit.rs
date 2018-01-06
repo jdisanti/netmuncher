@@ -16,16 +16,7 @@ use parse;
 use parse::src_tag::SrcTag;
 use parse::src_unit::{Locator, SrcUnits};
 use parse::component::{Component, Instance, PinNum, PinType};
-use error;
-
-macro_rules! err {
-    ($msg:expr) => {
-        {
-            let e: error::Error = error::ErrorKind::CircuitError($msg.into()).into();
-            e
-        }
-    }
-}
+use error::{self, ErrorKind};
 
 struct ReferenceGenerator {
     counts: BTreeMap<String, usize>,
@@ -123,7 +114,7 @@ impl Circuit {
         let mut components = BTreeMap::new();
         for component in input {
             if components.contains_key(&component.name) {
-                return Err(err!(format!(
+                bail!(ErrorKind::CircuitError(format!(
                     "component {} is defined more than once",
                     component.name
                 )));
@@ -138,7 +129,7 @@ impl Circuit {
             let mut circuit = Circuit::new();
 
             if !main_component.pins.is_empty() {
-                return Err(err!(format!(
+                bail!(ErrorKind::CircuitError(format!(
                     "{}: component Main cannot have pins",
                     units.locate(main_component.tag)
                 )));
@@ -173,7 +164,7 @@ impl Circuit {
 
             Ok(circuit)
         } else {
-            Err(err!("missing component Main"))
+            bail!(ErrorKind::CircuitError("missing component Main".into()));
         }
     }
 
@@ -222,7 +213,7 @@ fn instantiate(
                                 unreachable!()
                             }
                         } else {
-                            return Err(err!(format!(
+                            bail!(ErrorKind::CircuitError(format!(
                                 "{}: cannot find connection named {} on component {}",
                                 units.locate(instance.tag),
                                 connection_name,
@@ -231,7 +222,7 @@ fn instantiate(
                         }
                     }
                 } else {
-                    return Err(err!(format!(
+                    bail!(ErrorKind::CircuitError(format!(
                         "{}: no connection stated for pin {} on component {}",
                         units.locate(instance.tag),
                         pin.name,
@@ -253,7 +244,7 @@ fn instantiate(
                     if let Some(net_name) = net_map.get(mapped_net) {
                         new_net_map.insert(pin.name.clone(), net_name.clone());
                     } else {
-                        return Err(err!(format!(
+                        bail!(ErrorKind::CircuitError(format!(
                             "{}: cannot find pin or net named {} in instantiation of component {}",
                             units.locate(instance.tag),
                             mapped_net,
@@ -261,7 +252,7 @@ fn instantiate(
                         )));
                     }
                 } else {
-                    return Err(err!(format!(
+                    bail!(ErrorKind::CircuitError(format!(
                         "{}: unmapped pin named {} in instantiation of component {}",
                         units.locate(instance.tag),
                         pin.name,
@@ -275,7 +266,7 @@ fn instantiate(
         }
         Ok(())
     } else {
-        Err(err!(format!(
+        bail!(ErrorKind::CircuitError(format!(
             "{}: cannot find component definition for {}",
             units.locate(instance.tag),
             instance.name
