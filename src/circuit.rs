@@ -120,10 +120,7 @@ impl Circuit {
         while let Some(path) = modules_to_require.pop() {
             if !modules_required.contains(&path) {
                 modules_required.push(path.clone());
-                let unit_id = units.push_unit(
-                    path.to_str().unwrap().into(),
-                    load_file(path)?,
-                );
+                let unit_id = units.push_unit(path.to_str().unwrap().into(), load_file(path)?);
                 let locator = Locator::new(&units, unit_id);
                 let parse_result = parse::parse_components(&locator, units.source(unit_id))?;
                 modules_to_require.extend(
