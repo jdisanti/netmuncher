@@ -18,7 +18,7 @@ component LED {
     pin B: passive = 2;
 }
 
-component R {
+component "R" {
     prefix = "R";
     footprint = "resistor";
 
@@ -52,7 +52,7 @@ component Breakout {
     prefix = "J";
     footprint = "breakout";
 
-    pin VCC: power_out = 1;
+    pin "5V0": power_out = 1;
     pin GND: power_out = 2;
     pin A: input = 3;
     pin B: input = 4;
@@ -62,7 +62,7 @@ component Main {
     net VCC, GND, A, B, C;
 
     Breakout {
-        VCC: VCC;
+        "5V0": VCC;
         GND: GND;
         A: A;
         B: B;

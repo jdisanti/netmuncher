@@ -13,6 +13,8 @@ use std::fmt;
 use parse::src_unit::Locator;
 use error::{self, ErrorKind};
 
+use lalrpop_util::ParseError;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Tok {
     LBrace,
@@ -203,4 +205,26 @@ where
     }
 
     return (buf, None);
+}
+
+pub fn validate_symbol(
+    locator: &Locator,
+    offset: usize,
+    val: String,
+) -> Result<String, ParseError<usize, Tok, error::Error>> {
+    let valid_char = |c: char| c.is_ascii_alphanumeric() || c == '_';
+
+    for c in val.chars() {
+        if !valid_char(c) {
+            return Err(ParseError::User {
+                error: ErrorKind::ParseError(format!(
+                    "{}: invalid character '{}' in symbol. \
+                     Symbols must be alphanumeric with underscores.",
+                    locator.locate(offset),
+                    c
+                )).into(),
+            });
+        }
+    }
+    Ok(val)
 }

@@ -12,7 +12,7 @@
 
 use error::{self, ErrorKind};
 use parse::component::*;
-use parse::token::Tok;
+use parse::token::{Tok, validate_symbol};
 use parse::src_unit::Locator;
 use parse::ParseResult;
 
@@ -55,16 +55,21 @@ extern {
     }
 }
 
+SymbolOrQuote: String = {
+    <Symbol> => <>,
+    <offset:@L> <q:Quote> =>? validate_symbol(locator, offset, q),
+};
+
 SymbolList: Vec<String> = {
-    <sl:SymbolList> "," <s:Symbol> => {
+    <sl:SymbolList> "," <s:SymbolOrQuote> => {
         let mut result = sl;
         result.push(s);
         result
     },
-    <s:Symbol> "[" <n:Num> "]" => {
+    <s:SymbolOrQuote> "[" <n:Num> "]" => {
         vec![format!("{}{}", s, n)]
     },
-    <s:Symbol> "[" <start:Num> ":" <finish:Num> "]" => {
+    <s:SymbolOrQuote> "[" <start:Num> ":" <finish:Num> "]" => {
         let mut result = Vec::new();
         let range = if start <= finish {
             (start..(finish+1))
@@ -74,7 +79,7 @@ SymbolList: Vec<String> = {
         result.extend(range.map(&|i| format!("{}{}", s, i)));
         result
     },
-    Symbol => vec![<>],
+    SymbolOrQuote => vec![<>],
 };
 
 NumRange: Vec<u32> = {
@@ -141,7 +146,7 @@ InstanceValue: String = {
 };
 
 Instance: Instance = {
-    <offset:@L> <name:Symbol> "{" <params:InstanceParams> "}" => {
+    <offset:@L> <name:SymbolOrQuote> "{" <params:InstanceParams> "}" => {
         Instance {
             tag: locator.tag(offset),
             name: name,
@@ -149,7 +154,7 @@ Instance: Instance = {
             connections: params,
         }
     },
-    <offset:@L> <name:Symbol> "{" <value:InstanceValue> <params:InstanceParams> "}" => {
+    <offset:@L> <name:SymbolOrQuote> "{" <value:InstanceValue> <params:InstanceParams> "}" => {
         Instance {
             tag: locator.tag(offset),
             name: name,
@@ -157,7 +162,7 @@ Instance: Instance = {
             connections: params,
         }
     },
-    <offset:@L> <name:Symbol> "{" "}" => {
+    <offset:@L> <name:SymbolOrQuote> "{" "}" => {
         Instance {
             tag: locator.tag(offset),
             name: name,
@@ -178,7 +183,7 @@ PinType: PinType = {
 }; 
 
 StartComponent: Component = {
-    <offset:@L> "component" <name:Symbol> "{" => Component::new(locator.tag(offset), name),
+    <offset:@L> "component" <name:SymbolOrQuote> "{" => Component::new(locator.tag(offset), name),
 };
 
 ContinueComponent: Component = {

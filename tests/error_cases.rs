@@ -162,3 +162,10 @@ fn single_node_in_net() {
     assert_eq!("Error: net named SOLO.Main1 needs to have more than one connection\n",
         test("tests/errors/single_node_in_net.nm"));
 }
+
+#[test]
+fn invalid_quoted_symbol() {
+    assert_eq!("Error: tests/errors/invalid_quoted_symbol.nm:1:11: invalid character \
+        ' ' in symbol. Symbols must be alphanumeric with underscores.\n",
+        test("tests/errors/invalid_quoted_symbol.nm"));
+}
