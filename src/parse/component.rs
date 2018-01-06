@@ -17,7 +17,7 @@ macro_rules! err {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PinType {
     Input,
     Output,
@@ -47,6 +47,15 @@ pub struct Pin {
 pub struct Instance {
     pub name: String,
     pub connections: Vec<(String, String)>,
+}
+
+impl Instance {
+    pub fn new(name: String) -> Instance {
+        Instance {
+            name: name,
+            connections: Vec::new(),
+        }
+    }
 }
 
 #[derive(Default, Debug)]
@@ -89,13 +98,73 @@ impl PinMap {
     }
 }
 
+impl<'a> IntoIterator for &'a PinMap {
+    type Item = &'a Pin;
+    type IntoIter = ::std::slice::Iter<'a, Pin>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.pins).into_iter()
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct NetList {
+    nets: Vec<String>,
+}
+
+impl NetList {
+    pub fn add_net(&mut self, net: String) -> error::Result<()> {
+        if self.exists(&net) {
+            err!(format!("duplicate net named {}", net))
+        } else {
+            self.nets.push(net);
+            Ok(())
+        }
+    }
+
+    pub fn extend<I>(&mut self, iterator: I) -> error::Result<()>
+    where
+        I: Iterator<Item = String>,
+    {
+        for net in iterator {
+            self.add_net(net)?;
+        }
+        Ok(())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.nets.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.nets.len()
+    }
+
+    pub fn exists(&self, net: &str) -> bool {
+        self.nets.iter().find(|n: &&String| *n == net).is_some()
+    }
+
+    pub fn iter<'a>(&'a self) -> ::std::slice::Iter<'a, String> {
+        self.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a NetList {
+    type Item = &'a String;
+    type IntoIter = ::std::slice::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.nets).into_iter()
+    }
+}
+
 #[derive(Debug)]
 pub struct Component {
     pub name: String,
     pub footprint: Option<String>,
     pub prefix: Option<String>,
     pub pins: PinMap,
-    pub nets: Vec<String>,
+    pub nets: NetList,
     pub instances: Vec<Instance>,
 }
 
@@ -106,7 +175,7 @@ impl Component {
             footprint: None,
             prefix: None,
             pins: Default::default(),
-            nets: Vec::new(),
+            nets: Default::default(),
             instances: Vec::new(),
         }
     }
@@ -122,13 +191,12 @@ impl Component {
                     self.name
                 ));
             }
-        }
-        if !self.instances.is_empty() && !self.pins.is_empty() {
-            err!(format!(
-                "component {} can have pins or instances of other components, \
-                 but not both",
-                self.name
-            ));
+            if !self.instances.is_empty() {
+                err!(format!(
+                    "component {} cannot have instances if it has a footprint and prefix",
+                    self.name
+                ));
+            }
         }
         Ok(())
     }

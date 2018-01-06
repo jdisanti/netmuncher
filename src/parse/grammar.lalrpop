@@ -189,10 +189,17 @@ ContinueComponent: Component = {
         }
         Ok(component)
     },
-    <cc:ContinueComponent> "net" <sl:SymbolList> ";" => {
+    <cc:ContinueComponent> "net" <sl:SymbolList> ";" =>? {
         let mut component = cc;
-        component.nets.extend(sl.into_iter());
-        component
+        component.nets.extend(sl.into_iter())
+            .map_err(|e| {
+                ParseError::User {
+                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
+                        format!("error in component {}", component.name)
+                    )))
+                }
+            })?;
+        Ok(component)
     },
     <cc:ContinueComponent> <inst:Instance> => {
         let mut component = cc;
