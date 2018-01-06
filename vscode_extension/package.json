@@ -1,0 +1,31 @@
+{
+    "name": "netmuncher",
+    "version": "0.1.0",
+    "publisher": "jdisanti",
+    "engines": {
+        "vscode": "*"
+    },
+    "scripts": {},
+    "contributes": {
+        "languages": [
+            {
+                "id": "netmuncher",
+                "extensions": [
+                    ".nm"
+                ],
+                "aliases": [
+                    "NetMuncher",
+                    "netmuncher"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "netmuncher",
+                "path": "./syntaxes/netmuncher.tmLanguage.json",
+                "scopeName": "source.netmuncher"
+            }
+        ]
+    }
+}

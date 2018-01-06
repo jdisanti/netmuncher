@@ -1,0 +1,57 @@
+{
+    "version": "0.1",
+    "name": "NetMuncher",
+    "scopeName": "source.netmuncher",
+    "fileTypes": [
+        "nm"
+    ],
+    "repository": {
+        "line_comment": {
+            "comment": "Single-line comment",
+            "name": "comment.line.hash.netmuncher",
+            "begin": "//",
+            "end": "$"
+        },
+        "string_literal": {
+            "comment": "Double-quote string literal",
+            "name": "string.quoted.double.netmuncher",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "include": "#escaped_character"
+                }
+            ]
+        },
+        "escaped_character": {
+            "name": "constant.character.escape.netmuncher",
+            "match": "\\\\(x[0-9A-Fa-f]{2}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.)"
+        },
+        "keyword": {
+            "comment": "Keyword",
+            "name": "keyword.other.netmuncher",
+            "match": "\\b(component|footprint|input|net|noconnect|output|passive|pin|power_in|power_out|prefix|require|tristate|value)\\b"
+        }
+    },
+    "patterns": [
+        {
+            "include": "#line_comment"
+        },
+        {
+            "include": "#string_literal"
+        },
+        {
+            "include": "#keyword"
+        },
+        {
+            "comment": "Integer literal (decimal)",
+            "name": "constant.numeric.integer.decimal.netmuncher",
+            "match": "\\b[0-9][0-9_]*\\b"
+        },
+        {
+            "comment": "Assignment operator",
+            "name": "keyword.operator.assignment.netmuncher",
+            "match": "(=)"
+        }
+    ]
+}
