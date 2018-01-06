@@ -40,6 +40,7 @@ extern {
         Symbol => Tok::Symbol(<String>),
         "component" => Tok::KeywordComponent,
         "footprint" => Tok::KeywordFootprint,
+        "global" => Tok::KeywordGlobal,
         "input" => Tok::KeywordInput,
         "net" => Tok::KeywordNet,
         "noconnect" => Tok::KeywordNoConnect,
@@ -154,6 +155,14 @@ Instance: Instance = {
             connections: params,
         }
     },
+    <offset:@L> <name:SymbolOrQuote> "{" <value:InstanceValue> "}" => {
+        Instance {
+            tag: locator.tag(offset),
+            name: name,
+            value: Some(value),
+            connections: Vec::new(),
+        }
+    },
     <offset:@L> <name:SymbolOrQuote> "{" <value:InstanceValue> <params:InstanceParams> "}" => {
         Instance {
             tag: locator.tag(offset),
@@ -163,6 +172,14 @@ Instance: Instance = {
         }
     },
     <offset:@L> <name:SymbolOrQuote> "{" "}" => {
+        Instance {
+            tag: locator.tag(offset),
+            name: name,
+            value: None,
+            connections: Vec::new(),
+        }
+    },
+    <offset:@L> <name:SymbolOrQuote> ";" => {
         Instance {
             tag: locator.tag(offset),
             name: name,
@@ -251,6 +268,11 @@ Require: String = {
 };
 
 pub Source: ParseResult = {
+    <r:Source> "global" "net" <sl:SymbolList> ";" => {
+        let mut result = r;
+        result.global_nets.extend(sl.into_iter());
+        result
+    },
     <r:Source> <module:Require> => {
         let mut result = r;
         result.requires.push(module);
@@ -259,6 +281,11 @@ pub Source: ParseResult = {
     <r:Source> <component:CompleteComponent> => {
         let mut result = r;
         result.components.push(component);
+        result
+    },
+    "global" "net" <sl:SymbolList> ";" => {
+        let mut result = ParseResult::new();
+        result.global_nets.extend(sl.into_iter());
         result
     },
     <module:Require> => {

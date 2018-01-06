@@ -26,6 +26,7 @@ use parse::src_unit::Locator;
 pub struct ParseResult {
     pub requires: Vec<String>,
     pub components: Vec<Component>,
+    pub global_nets: Vec<String>,
 }
 
 impl ParseResult {
@@ -45,7 +46,7 @@ pub fn parse_components(locator: &Locator, source: &str) -> error::Result<ParseR
                 "{}: unexpected token \"{}\". Expected one of: {}",
                 locator.locate(location),
                 token,
-                expected.join(",")
+                expected.join(", ")
             )).into(),
             None => error::ErrorKind::ParseError(format!("{}: unexpected end of file", locator.name()).into()).into(),
         },

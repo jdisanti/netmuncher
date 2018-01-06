@@ -46,3 +46,10 @@ fn no_connects() {
     let actual = compile("tests/valid/no_connects.nm");
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn global_nets() {
+    let expected = load("tests/valid/global_nets.net");
+    let actual = compile("tests/valid/global_nets.nm");
+    assert_eq!(expected, actual);
+}

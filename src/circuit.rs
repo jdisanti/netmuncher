@@ -91,6 +91,7 @@ impl Circuit {
         let mut modules_required: Vec<PathBuf> = Vec::new();
         modules_to_require.push(module_path(&main_path, &main_file).unwrap());
 
+        let mut global_nets: Vec<String> = Vec::new();
         let mut components: Vec<Component> = Vec::new();
         while let Some(path) = modules_to_require.pop() {
             if !modules_required.contains(&path) {
@@ -104,14 +105,24 @@ impl Circuit {
                         .into_iter()
                         .filter_map(|r| module_path(&main_path, &r)),
                 );
+                global_nets.extend(parse_result.global_nets.into_iter());
                 components.extend(parse_result.components.into_iter());
             }
         }
 
-        Circuit::from_components(&units, components)
+        let original_net_size = global_nets.len();
+        global_nets.sort();
+        global_nets.dedup();
+        if original_net_size != global_nets.len() {
+            bail!(ErrorKind::CircuitError(
+                "detected duplicate global nets".into()
+            ));
+        }
+
+        Circuit::from_components(&units, &global_nets, components)
     }
 
-    fn from_components(units: &SrcUnits, input: Vec<Component>) -> error::Result<Circuit> {
+    fn from_components(units: &SrcUnits, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
         let mut components = BTreeMap::new();
         for component in input {
             if components.contains_key(&component.name) {
@@ -136,10 +147,7 @@ impl Circuit {
             }
 
             let main_instance = Instance::new(main_component.tag, "Main".into());
-            {
-                let mut instantiator = Instantiator::new(&mut circuit, units, &components);
-                instantiator.instantiate(&main_instance)?;
-            }
+            Instantiator::new(&mut circuit, units, &components, global_nets).instantiate(&main_instance)?;
 
             if circuit.instances.is_empty() {
                 bail!(ErrorKind::CircuitError(format!(

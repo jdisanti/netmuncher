@@ -1,0 +1,35 @@
+component PowerConnect {
+    prefix = "J";
+    footprint = "power";
+
+    pin VCC: power_out = 1;
+    pin GND: power_out = 2;
+}
+
+component Foo {
+    prefix = "U";
+    footprint = "foo";
+
+    pin VCC: power_in = 1;
+    pin GND: power_in = 2;
+    pin A: input = 3;
+    pin B: output = 4;
+}
+
+global net VCC, GND;
+
+component AbstractContainer {
+    pin VCC: power_in = 1;
+    pin GND: power_in = 2;
+
+    PowerConnect;
+}
+
+component Main {
+    AbstractContainer;
+
+    Foo {
+        A: VCC;
+        B: noconnect;
+    }
+}

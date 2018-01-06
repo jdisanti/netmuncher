@@ -44,6 +44,7 @@ pub struct Instantiator<'input> {
     circuit: &'input mut Circuit,
     units: &'input SrcUnits,
     components: &'input BTreeMap<String, Component>,
+    global_nets: &'input [String],
     ref_gen: ReferenceGenerator,
 }
 
@@ -52,16 +53,22 @@ impl<'input> Instantiator<'input> {
         circuit: &'input mut Circuit,
         units: &'input SrcUnits,
         components: &'input BTreeMap<String, Component>,
+        global_nets: &'input [String],
     ) -> Instantiator<'input> {
         Instantiator {
             circuit: circuit,
             units: units,
             components: components,
+            global_nets: global_nets,
             ref_gen: ReferenceGenerator::new(),
         }
     }
 
-    pub fn instantiate(&mut self, instance: &Instance) -> error::Result<()> {
+    pub fn instantiate(mut self, instance: &Instance) -> error::Result<()> {
+        for global_net in self.global_nets {
+            self.circuit.nets.push(Net::new(global_net.clone()));
+        }
+
         self.instantiate_internal(instance, &BTreeMap::new())
     }
 
@@ -97,7 +104,9 @@ impl<'input> Instantiator<'input> {
             self.circuit.nets.push(Net::new(net_name));
         }
         for pin in &component.pins {
-            if let Some(mapped_net) = instance.find_connection(&pin.name) {
+            if self.global_nets.contains(&pin.name) {
+                new_net_map.insert(pin.name.clone(), pin.name.clone());
+            } else if let Some(mapped_net) = instance.find_connection(&pin.name) {
                 if mapped_net == "noconnect" {
                     new_net_map.insert(pin.name.clone(), "noconnect".into());
                 } else if let Some(net_name) = net_map.get(mapped_net) {
@@ -146,21 +155,22 @@ impl<'input> Instantiator<'input> {
             if pin.typ == PinType::NoConnect {
                 continue;
             }
-            if let Some(&(_, ref connection_name)) = instance
+            let node = Node::new(reference.clone(), pin.num, pin.name.clone(), pin.typ);
+            if self.global_nets.contains(&pin.name) {
+                self.add_to_net(instance, &pin.name, node)?;
+            } else if let Some(&(_, ref connection_name)) = instance
                 .connections
                 .iter()
                 .find(|&&(ref pin_name, _)| **pin_name == pin.name)
             {
                 if connection_name != "noconnect" {
-                    if let Some(net_name) = net_map.get(connection_name) {
+                    if self.global_nets.contains(connection_name) {
+                        self.add_to_net(instance, connection_name, node)?;
+                    } else if let Some(net_name) = net_map.get(connection_name) {
                         if net_name == "noconnect" {
                             // no connection; no op
-                        } else if let Some(net) = self.circuit.find_net_mut(net_name) {
-                            let node = Node::new(reference.clone(), pin.num, pin.name.clone(), pin.typ);
-                            erc::check_connection(&self.units, instance, &node, &net.nodes)?;
-                            net.nodes.push(node);
                         } else {
-                            unreachable!()
+                            self.add_to_net(instance, net_name, node)?;
                         }
                     } else {
                         bail!(ErrorKind::InstantiationError(format!(
@@ -178,7 +188,17 @@ impl<'input> Instantiator<'input> {
                     pin.name,
                     component.name
                 )));
-            }
+            };
+        }
+        Ok(())
+    }
+
+    fn add_to_net(&mut self, instance: &Instance, net: &str, node: Node) -> error::Result<()> {
+        if let Some(net) = self.circuit.find_net_mut(net) {
+            erc::check_connection(&self.units, instance, &node, &net.nodes)?;
+            net.nodes.push(node);
+        } else {
+            unreachable!()
         }
         Ok(())
     }

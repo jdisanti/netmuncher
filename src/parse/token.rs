@@ -33,6 +33,7 @@ pub enum Tok {
     Symbol(String),
     KeywordComponent,
     KeywordFootprint,
+    KeywordGlobal,
     KeywordInput,
     KeywordNet,
     KeywordNoConnect,
@@ -66,6 +67,7 @@ impl fmt::Display for Tok {
             Tok::Symbol(ref sym) => write!(f, "{}", sym),
             Tok::KeywordComponent => write!(f, "component"),
             Tok::KeywordFootprint => write!(f, "footprint"),
+            Tok::KeywordGlobal => write!(f, "global"),
             Tok::KeywordInput => write!(f, "input"),
             Tok::KeywordNet => write!(f, "net"),
             Tok::KeywordNoConnect => write!(f, "noconnect"),
@@ -154,6 +156,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                     match &symbol as &str {
                         "component" => tokens.push((start, Tok::KeywordComponent, start + 9)),
                         "footprint" => tokens.push((start, Tok::KeywordFootprint, start + 9)),
+                        "global" => tokens.push((start, Tok::KeywordGlobal, start + 6)),
                         "input" => tokens.push((start, Tok::KeywordInput, start + 5)),
                         "net" => tokens.push((start, Tok::KeywordNet, start + 3)),
                         "noconnect" => tokens.push((start, Tok::KeywordNoConnect, start + 9)),

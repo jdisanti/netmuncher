@@ -25,8 +25,8 @@ fn empty_file() {
 
 #[test]
 fn unexpected_token() {
-    assert_eq!("Error: tests/errors/unexpected_token.nm:2:6: \
-        unexpected token \";\". Expected one of: \"{\"\n",
+    assert_eq!("Error: tests/errors/unexpected_token.nm:2:7: \
+        unexpected token \"=\". Expected one of: \";\", \"{\"\n",
         test("tests/errors/unexpected_token.nm"));
 }
 
