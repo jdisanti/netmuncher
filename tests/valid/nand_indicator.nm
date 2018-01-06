@@ -1,0 +1,82 @@
+// NOT AND gate
+component NANDGate {
+    prefix = "U";
+    footprint = "nand_gate";
+
+    pin VCC: power = 1;
+    pin GND: power = 2;
+    pin IN1: input = 3;
+    pin IN2: input = 4;
+    pin OUT: output = 5;
+}
+
+component LED {
+    prefix = "D";
+    footprint = "led";
+
+    pin A: passive = 1;
+    pin B: passive = 2;
+}
+
+component R {
+    prefix = "R";
+    footprint = "resistor";
+
+    pin A: passive = 1;
+    pin B: passive = 2;
+}
+
+// Abstract indicator component that combines
+// an LED and resistor together automatically
+component Indicator {
+    pin VAL: input = 1;
+    pin GND: power = 2;
+
+    net LTR;
+
+    LED {
+        A: VAL;
+        B: LTR;
+    }
+
+    R {
+        A: LTR;
+        B: GND;
+    }
+}
+
+// A header breakout strip for connecting to a breadboard
+// or otherwise getting power and input into the circuit
+component Breakout {
+    prefix = "J";
+    footprint = "breakout";
+
+    pin VCC: power = 1;
+    pin GND: power = 2;
+    pin A: input = 3;
+    pin B: input = 4;
+}
+
+component Main {
+    net VCC, GND, A, B, C;
+
+    Breakout {
+        VCC: VCC;
+        GND: GND;
+        A: A;
+        B: B;
+    }
+
+    Indicator {
+        VAL: C;
+        GND: GND;
+    }
+
+    NANDGate {
+        VCC: VCC;
+        GND: GND;
+        IN1: A;
+        IN2: B;
+        OUT: C;
+    }
+}

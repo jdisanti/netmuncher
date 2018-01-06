@@ -247,9 +247,19 @@ fn instantiate(
                 new_net_map.insert(net.clone(), net_name.clone());
                 circuit.nets.push(Net::new(net_name));
             }
+            println!("Instantiating {} with {:#?}", component.name, net_map);
             for pin in &component.pins {
-                if let Some(net_name) = net_map.get(&pin.name) {
-                    new_net_map.insert(pin.name.clone(), net_name.clone());
+                if let Some(mapped_net) = instance.find_connection(&pin.name) {
+                    if let Some(net_name) = net_map.get(mapped_net) {
+                        new_net_map.insert(pin.name.clone(), net_name.clone());
+                    } else {
+                        return Err(err!(format!(
+                            "{}: cannot find pin or net named {} in instantiation of component {}",
+                            units.locate(instance.tag),
+                            mapped_net,
+                            component.name
+                        )));
+                    }
                 } else {
                     return Err(err!(format!(
                         "{}: unmapped pin named {} in instantiation of component {}",

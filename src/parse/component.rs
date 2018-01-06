@@ -60,6 +60,12 @@ impl Instance {
             connections: Vec::new(),
         }
     }
+
+    pub fn find_connection(&self, pin_name: &str) -> Option<&String> {
+        self.connections.iter()
+            .find(|&&(ref name, _)| *name == pin_name)
+            .map(|tup| &tup.1)
+    }
 }
 
 #[derive(Default, Debug)]

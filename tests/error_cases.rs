@@ -135,3 +135,10 @@ fn missing_component() {
         cannot find component definition for Foo\n",
         test("tests/errors/missing_component.nm"));
 }
+
+#[test]
+fn missing_mapped_net() {
+    assert_eq!("Error: tests/errors/missing_mapped_net.nm:14:5: \
+        cannot find pin or net named C in instantiation of component Foo\n",
+        test("tests/errors/missing_mapped_net.nm"));
+}
