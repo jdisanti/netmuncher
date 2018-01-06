@@ -55,5 +55,5 @@ fn main() {
 
     let components = parse::parse_components(&input_source).unwrap();
     let circuit = circuit::Circuit::from_components(components).unwrap();
-    println!("{:#?}", circuit);
+    println!("{}", circuit);
 }

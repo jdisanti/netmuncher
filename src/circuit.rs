@@ -247,30 +247,25 @@ impl fmt::Display for Circuit {
         writeln!(f, "    (source \"netmuncher_generated\")")?;
         writeln!(f, "    (tool \"netmuncher (0.1)\"))")?;
         writeln!(f, "  (components")?;
-        writeln!(f, "  )")?;
-        // Looks like we don't need libparts
-        /*
-        writeln!(f, "  (libparts")?;
-        for component in self.components.values() {
-            writeln!(f, "    (libpart (lib netmuncher_generated) (part {})", component.name)?;
-            writeln!(f, "      (fields")?;
-            writeln!(f, "        (field (name Reference) {})", component.reference_prefix)?;
-            writeln!(f, "        (field (name Value) {}))", component.name)?;
-            writeln!(f, "      (pins")?;
-            for pin in component.pins() {
-                writeln!(f, "        (pin (num {}) (name {}) (type {}))", pin.num, pin.name, match pin.wire_class {
-                    WireClass::Input => "input",
-                    WireClass::Output => "output",
-                    WireClass::Passive => "passive",
-                    WireClass::Power => "power_in",
-                    WireClass::Tristate => "3state",
-                    WireClass::NoConnect => "NotConnected",
-                })?;
-            }
-            writeln!(f, "      ))")?;
+        for instance in &self.instances {
+            writeln!(f, "    (comp (ref {})", instance.reference)?;
+            writeln!(f, "      (value {})", instance.value)?;
+            writeln!(f, "      (footprint {}))", instance.footprint)?;
         }
-        writeln!(f, "  )")?;*/
-        writeln!(f, "  (nets ))")?;
+        writeln!(f, "  )")?;
+        writeln!(f, "  (nets")?;
+        for (index, net) in self.nets.iter().enumerate() {
+            writeln!(f, "    (net (code {}) (name \"{}\")", index, net.name)?;
+            for node in &net.nodes {
+                writeln!(
+                    f,
+                    "      (node (ref {}) (pin {}))",
+                    node.reference, node.pin
+                )?;
+            }
+            writeln!(f, "    )")?;
+        }
+        writeln!(f, "  ))")?;
         Ok(())
     }
 }
