@@ -39,3 +39,10 @@ fn module_test() {
     let actual = compile("tests/valid/module_test/main.nm");
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn no_connects() {
+    let expected = load("tests/valid/no_connects.net");
+    let actual = compile("tests/valid/no_connects.nm");
+    assert_eq!(expected, actual);
+}

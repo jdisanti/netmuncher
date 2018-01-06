@@ -1,0 +1,44 @@
+component PowerConnect {
+    prefix = "J";
+    footprint = "power";
+
+    pin VCC: power_out = 1;
+    pin GND: power_out = 2;
+}
+
+component Inner {
+    prefix = "U";
+    footprint = "inner";
+
+    pin VCC: power_in = 1;
+    pin GND: power_in = 2;
+    pin SomeInput: input = 3;
+}
+
+component LotsOfNoConnects {
+    pin VCC: power_in = 1;
+    pin GND: power_in = 2;
+    pin SomeInput: input = 3;
+    pin NC[0:4]: noconnect = (4..8);
+
+    Inner {
+        VCC: VCC;
+        GND: GND;
+        SomeInput: SomeInput;
+    }
+}
+
+component Main {
+    net VCC, GND;
+
+    PowerConnect {
+        VCC: VCC;
+        GND: GND;
+    }
+
+    LotsOfNoConnects {
+        VCC: VCC;
+        GND: GND;
+        SomeInput: noconnect;
+    }
+}

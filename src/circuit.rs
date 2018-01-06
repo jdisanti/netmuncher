@@ -229,6 +229,111 @@ fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathB
     }
 }
 
+fn instantiate_abstract_component(
+    units: &SrcUnits,
+    ref_gen: &mut ReferenceGenerator,
+    circuit: &mut Circuit,
+    instance: &Instance,
+    net_map: &BTreeMap<String, String>,
+    components: &BTreeMap<String, Component>,
+    component: &Component,
+) -> error::Result<()> {
+    let mut new_net_map = BTreeMap::new();
+    let anon_ref = ref_gen.next(&component.name);
+    for net in &component.nets {
+        let net_name = format!("{}.{}", net, anon_ref);
+        new_net_map.insert(net.clone(), net_name.clone());
+        circuit.nets.push(Net::new(net_name));
+    }
+    for pin in &component.pins {
+        if let Some(mapped_net) = instance.find_connection(&pin.name) {
+            if mapped_net == "noconnect" {
+                new_net_map.insert(pin.name.clone(), "noconnect".into());
+            } else if let Some(net_name) = net_map.get(mapped_net) {
+                new_net_map.insert(pin.name.clone(), net_name.clone());
+            } else {
+                bail!(ErrorKind::CircuitError(format!(
+                    "{}: cannot find pin or net named {} in instantiation of component {}",
+                    units.locate(instance.tag),
+                    mapped_net,
+                    component.name
+                )));
+            }
+        } else if pin.typ != PinType::NoConnect {
+            bail!(ErrorKind::CircuitError(format!(
+                "{}: unmapped pin named {} in instantiation of component {}",
+                units.locate(instance.tag),
+                pin.name,
+                component.name
+            )));
+        }
+    }
+    for instance in &component.instances {
+        instantiate(units, ref_gen, circuit, &components, instance, &new_net_map)?;
+    }
+    Ok(())
+}
+
+fn instantiate_concrete_component(
+    units: &SrcUnits,
+    ref_gen: &mut ReferenceGenerator,
+    circuit: &mut Circuit,
+    instance: &Instance,
+    net_map: &BTreeMap<String, String>,
+    component: &Component,
+    prefix: &str,
+) -> error::Result<()> {
+    let reference = ref_gen.next(prefix);
+    circuit.instances.push(ComponentInstance::new(
+        reference.clone(),
+        instance
+            .value
+            .as_ref()
+            .unwrap_or_else(|| &component.name)
+            .clone(),
+        component.footprint.as_ref().unwrap().clone(),
+    ));
+    for pin in &component.pins {
+        if pin.typ == PinType::NoConnect {
+            continue;
+        }
+        if let Some(&(_, ref connection_name)) = instance
+            .connections
+            .iter()
+            .find(|&&(ref pin_name, _)| **pin_name == pin.name)
+        {
+            if connection_name != "noconnect" {
+                if let Some(net_name) = net_map.get(connection_name) {
+                    if net_name == "noconnect" {
+                        // no connection; no op
+                    } else if let Some(net) = circuit.find_net_mut(net_name) {
+                        let node = Node::new(reference.clone(), pin.num, pin.name.clone(), pin.typ);
+                        erc::check_connection(units, instance, &node, &net.nodes)?;
+                        net.nodes.push(node);
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    bail!(ErrorKind::CircuitError(format!(
+                        "{}: cannot find connection named {} on component {}",
+                        units.locate(instance.tag),
+                        connection_name,
+                        component.name
+                    )));
+                }
+            }
+        } else {
+            bail!(ErrorKind::CircuitError(format!(
+                "{}: no connection stated for pin {} on component {}",
+                units.locate(instance.tag),
+                pin.name,
+                component.name
+            )));
+        }
+    }
+    Ok(())
+}
+
 fn instantiate(
     units: &SrcUnits,
     ref_gen: &mut ReferenceGenerator,
@@ -239,84 +344,25 @@ fn instantiate(
 ) -> error::Result<()> {
     if let Some(component) = components.get(&instance.name) {
         if let Some(ref prefix) = component.prefix {
-            let reference = ref_gen.next(prefix);
-            circuit.instances.push(ComponentInstance::new(
-                reference.clone(),
-                instance
-                    .value
-                    .as_ref()
-                    .unwrap_or_else(|| &component.name)
-                    .clone(),
-                component.footprint.as_ref().unwrap().clone(),
-            ));
-            for pin in &component.pins {
-                if pin.typ == PinType::NoConnect {
-                    continue;
-                }
-                if let Some(&(_, ref connection_name)) = instance
-                    .connections
-                    .iter()
-                    .find(|&&(ref pin_name, _)| **pin_name == pin.name)
-                {
-                    if connection_name != "noconnect" {
-                        if let Some(net_name) = net_map.get(connection_name) {
-                            if let Some(net) = circuit.find_net_mut(net_name) {
-                                let node = Node::new(reference.clone(), pin.num, pin.name.clone(), pin.typ);
-                                erc::check_connection(units, instance, &node, &net.nodes)?;
-                                net.nodes.push(node);
-                            } else {
-                                unreachable!()
-                            }
-                        } else {
-                            bail!(ErrorKind::CircuitError(format!(
-                                "{}: cannot find connection named {} on component {}",
-                                units.locate(instance.tag),
-                                connection_name,
-                                component.name
-                            )));
-                        }
-                    }
-                } else {
-                    bail!(ErrorKind::CircuitError(format!(
-                        "{}: no connection stated for pin {} on component {}",
-                        units.locate(instance.tag),
-                        pin.name,
-                        component.name
-                    )));
-                }
-            }
+            instantiate_concrete_component(
+                units,
+                ref_gen,
+                circuit,
+                instance,
+                net_map,
+                component,
+                prefix,
+            )?;
         } else {
-            let mut new_net_map = BTreeMap::new();
-            let anon_ref = ref_gen.next(&component.name);
-            for net in &component.nets {
-                let net_name = format!("{}.{}", net, anon_ref);
-                new_net_map.insert(net.clone(), net_name.clone());
-                circuit.nets.push(Net::new(net_name));
-            }
-            for pin in &component.pins {
-                if let Some(mapped_net) = instance.find_connection(&pin.name) {
-                    if let Some(net_name) = net_map.get(mapped_net) {
-                        new_net_map.insert(pin.name.clone(), net_name.clone());
-                    } else {
-                        bail!(ErrorKind::CircuitError(format!(
-                            "{}: cannot find pin or net named {} in instantiation of component {}",
-                            units.locate(instance.tag),
-                            mapped_net,
-                            component.name
-                        )));
-                    }
-                } else {
-                    bail!(ErrorKind::CircuitError(format!(
-                        "{}: unmapped pin named {} in instantiation of component {}",
-                        units.locate(instance.tag),
-                        pin.name,
-                        component.name
-                    )));
-                }
-            }
-            for instance in &component.instances {
-                instantiate(units, ref_gen, circuit, &components, instance, &new_net_map)?;
-            }
+            instantiate_abstract_component(
+                units,
+                ref_gen,
+                circuit,
+                instance,
+                net_map,
+                components,
+                component,
+            )?;
         }
         Ok(())
     } else {
