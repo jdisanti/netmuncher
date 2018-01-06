@@ -7,20 +7,14 @@
 // copied, modified, or distributed except according to those terms.
 //
 
-extern crate clap;
-extern crate lalrpop_util;
-extern crate regex;
-
-#[macro_use]
+extern crate netmuncher;
 extern crate error_chain;
+extern crate clap;
 
 use std::process;
 
 use error_chain::ChainedError;
-
-mod circuit;
-mod error;
-mod parse;
+use netmuncher::circuit::Circuit;
 
 fn main() {
     let matches = clap::App::new("netmuncher")
@@ -35,7 +29,7 @@ fn main() {
         .get_matches();
 
     let input_file_name = matches.value_of("INPUT").unwrap();
-    let circuit = match circuit::Circuit::compile(input_file_name) {
+    let circuit = match Circuit::compile(input_file_name) {
         Ok(circuit) => circuit,
         Err(err) => {
             println!("{}", err.display_chain().to_string());
