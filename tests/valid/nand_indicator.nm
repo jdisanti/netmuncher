@@ -3,8 +3,8 @@ component NANDGate {
     prefix = "U";
     footprint = "nand_gate";
 
-    pin VCC: power = 1;
-    pin GND: power = 2;
+    pin VCC: power_in = 1;
+    pin GND: power_in = 2;
     pin IN1: input = 3;
     pin IN2: input = 4;
     pin OUT: output = 5;
@@ -30,7 +30,7 @@ component R {
 // an LED and resistor together automatically
 component Indicator {
     pin VAL: input = 1;
-    pin GND: power = 2;
+    pin GND: power_in = 2;
 
     net LTR;
 
@@ -51,8 +51,8 @@ component Breakout {
     prefix = "J";
     footprint = "breakout";
 
-    pin VCC: power = 1;
-    pin GND: power = 2;
+    pin VCC: power_out = 1;
+    pin GND: power_out = 2;
     pin A: input = 3;
     pin B: input = 4;
 }

@@ -1,0 +1,11 @@
+component AbstractComponent {
+    pin A: passive = 1;
+}
+
+component Main {
+    net TEST;
+
+    AbstractComponent {
+        A: TEST;
+    }
+}

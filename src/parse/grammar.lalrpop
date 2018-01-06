@@ -45,7 +45,8 @@ extern {
         "output" => Tok::KeywordOutput,
         "passive" => Tok::KeywordPassive,
         "pin" => Tok::KeywordPin,
-        "power" => Tok::KeywordPower,
+        "power_in" => Tok::KeywordPowerIn,
+        "power_out" => Tok::KeywordPowerOut,
         "prefix" => Tok::KeywordPrefix,
         "tristate" => Tok::KeywordTristate,
     }
@@ -153,7 +154,8 @@ PinType: PinType = {
     "input" => PinType::Input,
     "output" => PinType::Output,
     "passive" => PinType::Passive,
-    "power" => PinType::Power,
+    "power_in" => PinType::PowerIn,
+    "power_out" => PinType::PowerOut,
     "tristate" => PinType::Tristate,
     "noconnect" => PinType::NoConnect,
 }; 

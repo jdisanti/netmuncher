@@ -12,11 +12,11 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 
+use erc;
+use error::{self, ErrorKind};
 use parse;
-use parse::src_tag::SrcTag;
 use parse::src_unit::{Locator, SrcUnits};
 use parse::component::{Component, Instance, PinNum, PinType};
-use error::{self, ErrorKind};
 
 struct ReferenceGenerator {
     counts: BTreeMap<String, usize>,
@@ -62,23 +62,27 @@ impl ComponentInstance {
 
 #[derive(Debug)]
 pub struct Node {
-    reference: String,
-    pin: PinNum,
+    pub reference: String,
+    pub pin: PinNum,
+    pub pin_name: String,
+    pub pin_type: PinType,
 }
 
 impl Node {
-    pub fn new(reference: String, pin: PinNum) -> Node {
+    pub fn new(reference: String, pin: PinNum, pin_name: String, pin_type: PinType) -> Node {
         Node {
             reference: reference,
             pin: pin,
+            pin_name: pin_name,
+            pin_type: pin_type,
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Net {
-    name: String,
-    nodes: Vec<Node>,
+    pub name: String,
+    pub nodes: Vec<Node>,
 }
 
 impl Net {
@@ -136,7 +140,7 @@ impl Circuit {
             }
 
             let empty_net_map = BTreeMap::new();
-            let main_instance = Instance::new(SrcTag::invalid(), "Main".into());
+            let main_instance = Instance::new(main_component.tag, "Main".into());
             instantiate(
                 units,
                 &mut ref_gen,
@@ -145,6 +149,13 @@ impl Circuit {
                 &main_instance,
                 &empty_net_map,
             )?;
+
+            if circuit.instances.is_empty() {
+                bail!(ErrorKind::CircuitError(format!(
+                    "{}: empty circuit: no concrete components",
+                    units.locate(main_instance.tag),
+                )));
+            }
 
             let net_names: Vec<String> = circuit.nets.iter().map(|n| n.name.clone()).collect();
             for net_name in &net_names {
@@ -159,8 +170,6 @@ impl Circuit {
                     }
                 }
             }
-
-            // TODO: ERC
 
             Ok(circuit)
         } else {
@@ -208,7 +217,9 @@ fn instantiate(
                     if connection_name != "noconnect" {
                         if let Some(net_name) = net_map.get(connection_name) {
                             if let Some(net) = circuit.find_net_mut(net_name) {
-                                net.nodes.push(Node::new(reference.clone(), pin.num));
+                                let node = Node::new(reference.clone(), pin.num, pin.name.clone(), pin.typ);
+                                erc::check_connection(units, instance, &node, &net.nodes)?;
+                                net.nodes.push(node);
                             } else {
                                 unreachable!()
                             }
@@ -238,7 +249,6 @@ fn instantiate(
                 new_net_map.insert(net.clone(), net_name.clone());
                 circuit.nets.push(Net::new(net_name));
             }
-            println!("Instantiating {} with {:#?}", component.name, net_map);
             for pin in &component.pins {
                 if let Some(mapped_net) = instance.find_connection(&pin.name) {
                     if let Some(net_name) = net_map.get(mapped_net) {

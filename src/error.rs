@@ -36,5 +36,9 @@ error_chain! {
             description("tokenization error")
             display("{}", msg)
         }
+        ERCError(msg: String) {
+            description("ERC error")
+            display("{}", msg)
+        }
     }
 }

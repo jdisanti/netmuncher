@@ -24,7 +24,8 @@ pub enum PinType {
     Input,
     Output,
     Passive,
-    Power,
+    PowerIn,
+    PowerOut,
     Tristate,
     NoConnect,
 }
@@ -62,7 +63,8 @@ impl Instance {
     }
 
     pub fn find_connection(&self, pin_name: &str) -> Option<&String> {
-        self.connections.iter()
+        self.connections
+            .iter()
             .find(|&&(ref name, _)| *name == pin_name)
             .map(|tup| &tup.1)
     }

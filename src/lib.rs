@@ -14,5 +14,6 @@ extern crate regex;
 extern crate error_chain;
 
 pub mod circuit;
+mod erc;
 pub mod error;
 mod parse;

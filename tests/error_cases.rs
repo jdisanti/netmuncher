@@ -142,3 +142,17 @@ fn missing_mapped_net() {
         cannot find pin or net named C in instantiation of component Foo\n",
         test("tests/errors/missing_mapped_net.nm"));
 }
+
+#[test]
+fn erc_error() {
+    assert_eq!("Error: tests/errors/erc_error.nm:15:5: \
+        in instantiation of Foo, pin A (PowerOut) connected to A (PowerOut)\n",
+        test("tests/errors/erc_error.nm"));
+}
+
+#[test]
+fn empty_circuit() {
+    assert_eq!("Error: tests/errors/empty_circuit.nm:5:1: \
+        empty circuit: no concrete components\n",
+        test("tests/errors/empty_circuit.nm"));
+}

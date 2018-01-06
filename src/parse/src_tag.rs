@@ -22,13 +22,6 @@ impl SrcTag {
         }
     }
 
-    pub fn invalid() -> SrcTag {
-        SrcTag {
-            unit: usize::max_value(),
-            offset: usize::max_value(),
-        }
-    }
-
     /// Returns the (row, column) of this tag in the given program text
     pub fn row_col(&self, program: &str) -> (usize, usize) {
         let mut row: usize = 1;
