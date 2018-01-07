@@ -1,6 +1,6 @@
 require "./some_module.nm";
 
-component Main {
+abstract component Main {
     net A, B, C;
 
     R {

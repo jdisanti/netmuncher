@@ -38,6 +38,7 @@ extern {
         Num => Tok::Num(<u32>),
         Quote => Tok::Quote(<String>),
         Symbol => Tok::Symbol(<String>),
+        "abstract" => Tok::KeywordAbstract,
         "component" => Tok::KeywordComponent,
         "footprint" => Tok::KeywordFootprint,
         "global" => Tok::KeywordGlobal,
@@ -200,7 +201,8 @@ PinType: PinType = {
 }; 
 
 StartComponent: Component = {
-    <offset:@L> "component" <name:SymbolOrQuote> "{" => Component::new(locator.tag(offset), name),
+    <offset:@L> "abstract" "component" <name:SymbolOrQuote> "{" => Component::new(locator.tag(offset), name, true),
+    <offset:@L> "component" <name:SymbolOrQuote> "{" => Component::new(locator.tag(offset), name, false),
 };
 
 ContinueComponent: Component = {

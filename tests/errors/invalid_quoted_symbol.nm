@@ -1,2 +1,2 @@
-component "Foo Bar" {
+abstract component "Foo Bar" {
 }

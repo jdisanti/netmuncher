@@ -11,9 +11,9 @@ extern crate clap;
 extern crate error_chain;
 extern crate netmuncher;
 
-use std::process;
 use std::fs::File;
 use std::io::prelude::*;
+use std::process;
 
 use error_chain::ChainedError;
 use netmuncher::circuit::Circuit;

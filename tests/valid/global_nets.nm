@@ -18,14 +18,14 @@ component Foo {
 
 global net VCC, GND;
 
-component AbstractContainer {
+abstract component AbstractContainer {
     pin VCC: power_in = 1;
     pin GND: power_in = 2;
 
     PowerConnect;
 }
 
-component Main {
+abstract component Main {
     AbstractContainer;
 
     Foo {

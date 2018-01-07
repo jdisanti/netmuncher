@@ -1,9 +1,9 @@
-component Foo {
+abstract component Foo {
     pin X: passive = 1;
     pin Y: passive = 2;
 }
 
-component Main {
+abstract component Main {
     net A, B;
 
     Foo {

@@ -14,10 +14,10 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
 use error::{self, ErrorKind};
-use parse;
-use parse::src_unit::{Locator, SrcUnits};
-use parse::component::{Component, Instance, PinNum, PinType};
 use instantiator::Instantiator;
+use parse;
+use parse::component::{Component, Instance, PinNum, PinType};
+use parse::src_unit::{Locator, SrcUnits};
 
 #[derive(Debug)]
 pub struct ComponentInstance {

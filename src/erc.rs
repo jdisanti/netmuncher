@@ -51,8 +51,8 @@ pub fn check_connection(units: &SrcUnits, instance: &Instance, current: &Node, o
 }
 
 fn check(first: PinType, second: PinType) -> ValidationResult {
-    use parse::component::PinType::*;
     use self::ValidationResult::*;
+    use parse::component::PinType::*;
 
     match first {
         Input => match second {

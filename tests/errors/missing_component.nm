@@ -1,4 +1,4 @@
-component Main {
+abstract component Main {
     Foo {
     }
 }

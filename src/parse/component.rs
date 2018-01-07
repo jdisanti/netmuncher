@@ -9,14 +9,17 @@
 
 use std::fmt;
 
+use error;
 use parse::src_tag::SrcTag;
 use parse::src_unit::SrcUnits;
-use error;
 
 macro_rules! err {
     ($msg:expr) => {
         return Err(error::ErrorKind::ComponentError($msg.into()).into());
-    }
+    };
+    ($msg:expr $(, $prm:expr)*) => {
+        return Err(error::ErrorKind::ComponentError(format!($msg, $($prm,)*)).into());
+    };
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -86,10 +89,12 @@ impl PinMap {
             err!(format!("duplicate pin named {}", pin.name));
         }
         if let Some(other) = self.find_by_num(pin.num) {
-            err!(format!(
+            err!(
                 "pin number {} assigned to multiple names: {}, {}",
-                pin.num, pin.name, other.name
-            ));
+                pin.num,
+                pin.name,
+                other.name
+            );
         }
         self.pins.push(pin);
         Ok(())
@@ -129,7 +134,7 @@ pub struct NetList {
 impl NetList {
     pub fn add_net(&mut self, net: String) -> error::Result<()> {
         if self.exists(&net) {
-            err!(format!("duplicate net named {}", net))
+            err!("duplicate net named {}", net)
         } else {
             self.nets.push(net);
             Ok(())
@@ -176,6 +181,7 @@ impl<'a> IntoIterator for &'a NetList {
 pub struct Component {
     pub tag: SrcTag,
     pub name: String,
+    pub is_abstract: bool,
     pub footprint: Option<String>,
     pub prefix: Option<String>,
     pub pins: PinMap,
@@ -184,10 +190,11 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn new(tag: SrcTag, name: String) -> Component {
+    pub fn new(tag: SrcTag, name: String, is_abstract: bool) -> Component {
         Component {
             tag: tag,
             name: name,
+            is_abstract: is_abstract,
             footprint: None,
             prefix: None,
             pins: Default::default(),
@@ -197,27 +204,29 @@ impl Component {
     }
 
     pub fn validate_parameters(&self, units: &SrcUnits) -> error::Result<()> {
-        if self.footprint.is_some() || self.prefix.is_some() {
+        // short names to avoid line wrapping on errors
+        let n = &self.name;
+        let l = || units.locate(self.tag);
+
+        if !self.is_abstract {
             if !self.footprint.is_some() || self.footprint.as_ref().unwrap().is_empty() {
-                err!(format!(
-                    "{}: component {} must specify a footprint",
-                    units.locate(self.tag),
-                    self.name
-                ));
+                err!("{}: concrete component {} must specify a footprint", l(), n);
             }
             if !self.prefix.is_some() || self.prefix.as_ref().unwrap().is_empty() {
-                err!(format!(
-                    "{}: component {} must specify a reference prefix",
-                    units.locate(self.tag),
-                    self.name
-                ));
+                err!("{}: concrete component {} must specify a prefix", l(), n);
             }
             if !self.instances.is_empty() {
-                err!(format!(
-                    "{}: component {} cannot have instances if it has a footprint and prefix",
-                    units.locate(self.tag),
-                    self.name
-                ));
+                err!("{}: concrete component {} cannot have instances", l(), n);
+            }
+            if !self.nets.is_empty() {
+                err!("{}: concrete component {} cannot have nets", l(), n);
+            }
+        } else {
+            if self.footprint.is_some() {
+                err!("{}: abstract component {} cannot have a footprint", l(), n);
+            }
+            if self.prefix.is_some() {
+                err!("{}: abstract component {} cannot have a prefix", l(), n);
             }
         }
         Ok(())
@@ -231,12 +240,12 @@ impl Component {
         for i in 0..self.pins.len() {
             let pin_num = PinNum((i + 1) as u32);
             if !self.pins.find_by_num(pin_num).is_some() {
-                err!(format!(
+                err!(
                     "{}: component {} is missing some pins (take a look at pin {})",
                     units.locate(self.tag),
                     self.name,
                     pin_num
-                ));
+                );
             }
         }
 

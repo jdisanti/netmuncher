@@ -7,11 +7,11 @@
 // copied, modified, or distributed except according to those terms.
 //
 
-use std::str::FromStr;
 use std::fmt;
+use std::str::FromStr;
 
-use parse::src_unit::Locator;
 use error::{self, ErrorKind};
+use parse::src_unit::Locator;
 
 use lalrpop_util::ParseError;
 
@@ -31,6 +31,7 @@ pub enum Tok {
     Num(u32),
     Quote(String),
     Symbol(String),
+    KeywordAbstract,
     KeywordComponent,
     KeywordFootprint,
     KeywordGlobal,
@@ -65,6 +66,7 @@ impl fmt::Display for Tok {
             Tok::Num(num) => write!(f, "{}", num),
             Tok::Quote(_) => write!(f, "\""),
             Tok::Symbol(ref sym) => write!(f, "{}", sym),
+            Tok::KeywordAbstract => write!(f, "abstract"),
             Tok::KeywordComponent => write!(f, "component"),
             Tok::KeywordFootprint => write!(f, "footprint"),
             Tok::KeywordGlobal => write!(f, "global"),
@@ -161,6 +163,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                     lookahead = next;
 
                     match &symbol as &str {
+                        "abstract" => tokens.push((start, Tok::KeywordAbstract, start + 9)),
                         "component" => tokens.push((start, Tok::KeywordComponent, start + 9)),
                         "footprint" => tokens.push((start, Tok::KeywordFootprint, start + 9)),
                         "global" => tokens.push((start, Tok::KeywordGlobal, start + 6)),
@@ -228,8 +231,7 @@ pub fn validate_symbol(
         if !valid_char(c) {
             return Err(ParseError::User {
                 error: ErrorKind::ParseError(format!(
-                    "{}: invalid character '{}' in symbol. \
-                     Symbols must be alphanumeric with underscores.",
+                    "{}: invalid character '{}' in symbol. Symbols must be alphanumeric with underscores.",
                     locator.locate(offset),
                     c
                 )).into(),

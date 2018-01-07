@@ -15,7 +15,7 @@ component Inner {
     pin SomeInput: input = 3;
 }
 
-component LotsOfNoConnects {
+abstract component LotsOfNoConnects {
     pin VCC: power_in = 1;
     pin GND: power_in = 2;
     pin SomeInput: input = 3;
@@ -28,7 +28,7 @@ component LotsOfNoConnects {
     }
 }
 
-component Main {
+abstract component Main {
     net VCC, GND;
 
     PowerConnect {

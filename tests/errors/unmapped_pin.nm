@@ -1,10 +1,13 @@
 
 component A {
+    prefix = "U";
+    footprint = "a";
+
     pin X: input = 1;
     pin Y: input = 2;
 }
 
-component B {
+abstract component B {
     net H;
 
     pin G: input = 1;
@@ -20,7 +23,7 @@ component B {
     }
 }
 
-component Main {
+abstract component Main {
     B {
     }
 }

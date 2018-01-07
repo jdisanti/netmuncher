@@ -1,8 +1,8 @@
-component AbstractComponent {
+abstract component AbstractComponent {
     pin A: passive = 1;
 }
 
-component Main {
+abstract component Main {
     net TEST;
 
     AbstractComponent {

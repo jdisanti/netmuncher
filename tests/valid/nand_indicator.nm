@@ -28,7 +28,7 @@ component "R" {
 
 // Abstract indicator component that combines
 // an LED and resistor together automatically
-component Indicator {
+abstract component Indicator {
     pin VAL: input = 1;
     pin GND: power_in = 2;
 
@@ -58,7 +58,7 @@ component Breakout {
     pin B: input = 4;
 }
 
-component Main {
+abstract component Main {
     net VCC, GND, A, B, C;
 
     Breakout {

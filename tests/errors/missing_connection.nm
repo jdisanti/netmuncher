@@ -14,7 +14,7 @@ component Power {
     pin GND: input = 2;
 }
 
-component Main {
+abstract component Main {
     net VCC, GND, A;
 
     Power {

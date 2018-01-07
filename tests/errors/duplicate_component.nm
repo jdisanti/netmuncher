@@ -1,5 +1,5 @@
-component Foo {
+abstract component Foo {
 }
 
-component Foo {
+abstract component Foo {
 }

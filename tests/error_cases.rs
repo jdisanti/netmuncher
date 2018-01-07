@@ -65,21 +65,21 @@ fn duplicate_net() {
 #[test]
 fn footprint_required() {
     assert_eq!("Error: tests/errors/footprint_required.nm:2:1: \
-        component Foo must specify a footprint\n",
+        concrete component Foo must specify a footprint\n",
         test("tests/errors/footprint_required.nm"));
 }
 
 #[test]
 fn prefix_required() {
     assert_eq!("Error: tests/errors/prefix_required.nm:1:1: \
-        component Foo must specify a reference prefix\n",
+        concrete component Foo must specify a prefix\n",
         test("tests/errors/prefix_required.nm"));
 }
 
 #[test]
 fn no_instances_on_dumb_component() {
     assert_eq!("Error: tests/errors/no_instances_on_dumb_component.nm:8:1: \
-        component Invalid cannot have instances if it has a footprint and prefix\n",
+        concrete component Invalid cannot have instances\n",
         test("tests/errors/no_instances_on_dumb_component.nm"));
 }
 
@@ -124,7 +124,7 @@ fn cannot_find_connection() {
 
 #[test]
 fn unmapped_pin() {
-    assert_eq!("Error: tests/errors/unmapped_pin.nm:24:5: \
+    assert_eq!("Error: tests/errors/unmapped_pin.nm:27:5: \
         unmapped pin named G in instantiation of component B\n",
         test("tests/errors/unmapped_pin.nm"));
 }
@@ -165,7 +165,7 @@ fn single_node_in_net() {
 
 #[test]
 fn invalid_quoted_symbol() {
-    assert_eq!("Error: tests/errors/invalid_quoted_symbol.nm:1:11: invalid character \
+    assert_eq!("Error: tests/errors/invalid_quoted_symbol.nm:1:20: invalid character \
         ' ' in symbol. Symbols must be alphanumeric with underscores.\n",
         test("tests/errors/invalid_quoted_symbol.nm"));
 }

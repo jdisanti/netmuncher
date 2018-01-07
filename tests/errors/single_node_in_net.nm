@@ -5,7 +5,7 @@ component Foo {
     pin A: input = 1;
 }
 
-component Main {
+abstract component Main {
     net SOLO;
 
     Foo {

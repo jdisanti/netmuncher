@@ -5,7 +5,7 @@ component Foo {
     pin A: power_out = 1;
 }
 
-component Main {
+abstract component Main {
     net VCC;
 
     Foo {
