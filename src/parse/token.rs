@@ -108,7 +108,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                             tokens.push((start, Tok::DotDot, start + 2));
                         } else {
                             bail!(ErrorKind::TokenizationError(format!(
-                                "{}: unexpected character: {}",
+                                "{}: expected '.', found '{}'",
                                 locator.locate(start),
                                 c
                             )));
@@ -130,10 +130,17 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                         if c == '/' {
                             drop(take_while(None, &mut chars, |c| c != '\n'));
                         } else {
-                            unimplemented!("error condition for invalid comment")
+                            bail!(ErrorKind::TokenizationError(format!(
+                                "{}: expected '/', found '{}'",
+                                locator.locate(start),
+                                c
+                            )));
                         }
                     } else {
-                        unimplemented!("error condition for invalid comment")
+                        bail!(ErrorKind::TokenizationError(format!(
+                            "{}: unexpected '/'",
+                            locator.locate(start),
+                        )));
                     }
                 }
                 _ if c.is_digit(10) => {
