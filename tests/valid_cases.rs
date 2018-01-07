@@ -13,7 +13,7 @@ extern crate error_chain;
 use std::fs::File;
 use std::io::prelude::*;
 
-use netmuncher::circuit::Circuit;
+use netmuncher::circuit::{Circuit, KicadNetListSerializer, SerializeCircuit};
 
 fn load(file_name: &str) -> String {
     let mut file = File::open(file_name).unwrap();
@@ -23,7 +23,9 @@ fn load(file_name: &str) -> String {
 }
 
 fn compile(file_name: &str) -> String {
-    format!("{}", Circuit::compile(file_name).unwrap())
+    let circuit = Circuit::compile(file_name).unwrap();
+    let serialized = KicadNetListSerializer::new().serialize(&circuit).unwrap();
+    String::from_utf8(serialized).unwrap()
 }
 
 #[test]

@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::process;
 
 use error_chain::ChainedError;
-use netmuncher::circuit::Circuit;
+use netmuncher::circuit::{Circuit, KicadNetListSerializer, SerializeCircuit};
 
 fn main() {
     let matches = clap::App::new("netmuncher")
@@ -51,7 +51,13 @@ fn main() {
         }
     };
 
-    let output = format!("{}", circuit);
+    let output = match KicadNetListSerializer::new().serialize(&circuit) {
+        Ok(out) => out,
+        Err(err) => {
+            println!("Failed to serialize netlist: {}", err);
+            process::exit(1);
+        }
+    };
     let mut file = match File::create(output_file_name) {
         Ok(file) => file,
         Err(err) => {
@@ -59,7 +65,7 @@ fn main() {
             process::exit(1);
         }
     };
-    if let Err(err) = file.write_all(output.as_bytes()) {
+    if let Err(err) = file.write_all(&output) {
         println!("Failed to write output file: {}", err);
         process::exit(1);
     }

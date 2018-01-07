@@ -8,7 +8,7 @@
 //
 
 use std::collections::BTreeMap;
-use std::fmt;
+use std::fmt::Write;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -206,21 +206,34 @@ fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathB
     }
 }
 
-impl fmt::Display for Circuit {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+pub trait SerializeCircuit {
+    fn serialize(&self, circuit: &Circuit) -> error::Result<Vec<u8>>;
+}
+
+pub struct KicadNetListSerializer {}
+
+impl KicadNetListSerializer {
+    pub fn new() -> KicadNetListSerializer {
+        KicadNetListSerializer {}
+    }
+}
+
+impl SerializeCircuit for KicadNetListSerializer {
+    fn serialize(&self, circuit: &Circuit) -> error::Result<Vec<u8>> {
+        let mut f = String::new();
         writeln!(f, "(export (version D)")?;
         writeln!(f, "  (design")?;
         writeln!(f, "    (source \"netmuncher_generated\")")?;
         writeln!(f, "    (tool \"netmuncher (0.1)\"))")?;
         writeln!(f, "  (components")?;
-        for instance in &self.instances {
+        for instance in &circuit.instances {
             writeln!(f, "    (comp (ref {})", instance.reference)?;
             writeln!(f, "      (value {})", instance.value)?;
             writeln!(f, "      (footprint {}))", instance.footprint)?;
         }
         writeln!(f, "  )")?;
         writeln!(f, "  (nets")?;
-        for (index, net) in self.nets.iter().enumerate() {
+        for (index, net) in circuit.nets.iter().enumerate() {
             writeln!(f, "    (net (code {}) (name \"{}\")", index, net.name)?;
             for node in &net.nodes {
                 writeln!(
@@ -232,6 +245,6 @@ impl fmt::Display for Circuit {
             writeln!(f, "    )")?;
         }
         writeln!(f, "  ))")?;
-        Ok(())
+        Ok(f.into_bytes())
     }
 }
