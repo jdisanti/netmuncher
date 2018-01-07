@@ -8,13 +8,18 @@
 //
 
 use std::collections::BTreeMap;
-use std::fmt::Write;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
+mod erc;
+mod instantiator;
+mod serialize_kicad;
+
+pub use circuit::serialize_kicad::KicadNetListSerializer;
+
+use circuit::instantiator::Instantiator;
 use error::{self, ErrorKind};
-use instantiator::Instantiator;
 use parse;
 use parse::component::{Component, Instance, PinNum, PinType};
 use parse::src_unit::{Locator, SrcUnits};
@@ -208,43 +213,4 @@ fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathB
 
 pub trait SerializeCircuit {
     fn serialize(&self, circuit: &Circuit) -> error::Result<Vec<u8>>;
-}
-
-pub struct KicadNetListSerializer {}
-
-impl KicadNetListSerializer {
-    pub fn new() -> KicadNetListSerializer {
-        KicadNetListSerializer {}
-    }
-}
-
-impl SerializeCircuit for KicadNetListSerializer {
-    fn serialize(&self, circuit: &Circuit) -> error::Result<Vec<u8>> {
-        let mut f = String::new();
-        writeln!(f, "(export (version D)")?;
-        writeln!(f, "  (design")?;
-        writeln!(f, "    (source \"netmuncher_generated\")")?;
-        writeln!(f, "    (tool \"netmuncher (0.1)\"))")?;
-        writeln!(f, "  (components")?;
-        for instance in &circuit.instances {
-            writeln!(f, "    (comp (ref {})", instance.reference)?;
-            writeln!(f, "      (value {})", instance.value)?;
-            writeln!(f, "      (footprint {}))", instance.footprint)?;
-        }
-        writeln!(f, "  )")?;
-        writeln!(f, "  (nets")?;
-        for (index, net) in circuit.nets.iter().enumerate() {
-            writeln!(f, "    (net (code {}) (name \"{}\")", index, net.name)?;
-            for node in &net.nodes {
-                writeln!(
-                    f,
-                    "      (node (ref {}) (pin {}))",
-                    node.reference, node.pin
-                )?;
-            }
-            writeln!(f, "    )")?;
-        }
-        writeln!(f, "  ))")?;
-        Ok(f.into_bytes())
-    }
 }

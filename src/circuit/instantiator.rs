@@ -10,7 +10,7 @@
 use std::collections::BTreeMap;
 
 use circuit::{Circuit, ComponentInstance, Net, Node};
-use erc;
+use circuit::erc;
 use error::{self, ErrorKind};
 use parse::component::{Component, Instance, PinType};
 use parse::src_unit::SrcUnits;
