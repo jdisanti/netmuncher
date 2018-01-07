@@ -21,7 +21,7 @@ impl KicadNetListSerializer {
 }
 
 impl SerializeCircuit for KicadNetListSerializer {
-    fn serialize(&self, circuit: &Circuit) -> error::Result<Vec<u8>> {
+    fn serialize(self, circuit: &Circuit) -> error::Result<Vec<u8>> {
         let mut f = String::new();
         writeln!(f, "(export (version D)")?;
         writeln!(f, "  (design")?;

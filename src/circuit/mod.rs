@@ -15,7 +15,9 @@ use std::path::{Path, PathBuf};
 mod erc;
 mod instantiator;
 mod serialize_kicad;
+mod serialize_dot;
 
+pub use circuit::serialize_dot::DotSerializer;
 pub use circuit::serialize_kicad::KicadNetListSerializer;
 
 use circuit::instantiator::Instantiator;
@@ -76,9 +78,26 @@ impl Net {
 }
 
 #[derive(Default, Debug)]
+pub struct ComponentGroup {
+    pub name: String,
+    pub components: Vec<String>,
+    pub sub_groups: Vec<ComponentGroup>,
+}
+
+impl ComponentGroup {
+    pub fn new(name: String) -> ComponentGroup {
+        ComponentGroup {
+            name: name,
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Default, Debug)]
 pub struct Circuit {
     pub instances: Vec<ComponentInstance>,
     pub nets: Vec<Net>,
+    pub root_group: ComponentGroup,
 }
 
 impl Circuit {
@@ -212,5 +231,5 @@ fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathB
 }
 
 pub trait SerializeCircuit {
-    fn serialize(&self, circuit: &Circuit) -> error::Result<Vec<u8>>;
+    fn serialize(self, circuit: &Circuit) -> error::Result<Vec<u8>>;
 }

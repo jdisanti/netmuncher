@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::process;
 
 use error_chain::ChainedError;
-use netmuncher::circuit::{Circuit, KicadNetListSerializer, SerializeCircuit};
+use netmuncher::circuit::{Circuit, DotSerializer, KicadNetListSerializer, SerializeCircuit};
 
 fn main() {
     let matches = clap::App::new("netmuncher")
@@ -36,6 +36,14 @@ fn main() {
                 .value_name("OUTPUT")
                 .takes_value(true),
         )
+        .arg(
+            clap::Arg::with_name("FORMAT")
+                .help("set output format")
+                .short("f")
+                .long("format")
+                .value_name("FORMAT")
+                .takes_value(true),
+        )
         .get_matches();
 
     let input_file_name = matches.value_of("INPUT").unwrap();
@@ -43,6 +51,8 @@ fn main() {
         .value_of("OUTPUT")
         .map(|o| String::from(o))
         .unwrap_or_else(|| format!("{}.net", input_file_name));
+    let format = matches.value_of("FORMAT").unwrap_or("kicad");
+
     let circuit = match Circuit::compile(input_file_name) {
         Ok(circuit) => circuit,
         Err(err) => {
@@ -51,13 +61,22 @@ fn main() {
         }
     };
 
-    let output = match KicadNetListSerializer::new().serialize(&circuit) {
-        Ok(out) => out,
-        Err(err) => {
-            println!("Failed to serialize netlist: {}", err);
+    let output_result = match format {
+        "kicad" => KicadNetListSerializer::new().serialize(&circuit),
+        "dot" => DotSerializer::new().serialize(&circuit),
+        _ => {
+            println!("Unknown output format: {}", format);
             process::exit(1);
         }
     };
+    let output = match output_result {
+        Ok(out) => out,
+        Err(err) => {
+            println!("Failed to serialize: {}", err);
+            process::exit(1);
+        }
+    };
+
     let mut file = match File::create(output_file_name) {
         Ok(file) => file,
         Err(err) => {

@@ -7,9 +7,11 @@
 // copied, modified, or distributed except according to those terms.
 //
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
-use circuit::{Circuit, ComponentInstance, Net, Node};
+use circuit::{Circuit, ComponentGroup, ComponentInstance, Net, Node};
 use circuit::erc;
 use error::{self, ErrorKind};
 use parse::component::{Component, Instance, PinType};
@@ -36,6 +38,46 @@ impl ReferenceGenerator {
             reference
         } else {
             unreachable!()
+        }
+    }
+}
+
+type GroupBuilderPtr = Rc<RefCell<GroupBuilder>>;
+
+// This is hideous, but I couldn't find a way to make it compile with references and lifetimes
+struct GroupBuilder {
+    parent: Option<GroupBuilderPtr>,
+    name: String,
+    components: Vec<String>,
+    children: Vec<ComponentGroup>,
+}
+
+impl GroupBuilder {
+    fn new(parent: Option<GroupBuilderPtr>, name: String) -> GroupBuilderPtr {
+        Rc::new(RefCell::new(GroupBuilder {
+            parent: parent,
+            name: name,
+            components: Vec::new(),
+            children: Vec::new(),
+        }))
+    }
+
+    fn component(&mut self, reference: String) {
+        self.components.push(reference);
+    }
+
+    fn build(group: GroupBuilderPtr) -> Option<ComponentGroup> {
+        let this = Rc::try_unwrap(group).ok().unwrap().into_inner();
+        let group = ComponentGroup {
+            name: this.name,
+            components: this.components,
+            sub_groups: this.children,
+        };
+        if let Some(parent) = this.parent {
+            parent.borrow_mut().children.push(group);
+            None
+        } else {
+            Some(group)
         }
     }
 }
@@ -69,16 +111,24 @@ impl<'input> Instantiator<'input> {
             self.circuit.nets.push(Net::new(global_net.clone()));
         }
 
-        self.instantiate_internal(instance, &BTreeMap::new())
+        let root_group = GroupBuilder::new(None, "root".into());
+        self.instantiate_internal(instance, Rc::clone(&root_group), &BTreeMap::new())?;
+        self.circuit.root_group = GroupBuilder::build(root_group).unwrap();
+        Ok(())
     }
 
-    fn instantiate_internal(&mut self, instance: &Instance, net_map: &BTreeMap<String, String>) -> error::Result<()> {
+    fn instantiate_internal(
+        &mut self,
+        instance: &Instance,
+        parent_group: GroupBuilderPtr,
+        net_map: &BTreeMap<String, String>,
+    ) -> error::Result<()> {
         if let Some(component) = self.components.get(&instance.name) {
             // Concrete components should always have a prefix and footprint
             if let Some(ref prefix) = component.prefix {
-                self.instantiate_concrete(instance, net_map, component, prefix)?;
+                self.instantiate_concrete(instance, parent_group, net_map, component, prefix)?;
             } else {
-                self.instantiate_abstract(instance, net_map, component)?;
+                self.instantiate_abstract(instance, parent_group, net_map, component)?;
             }
             Ok(())
         } else {
@@ -93,6 +143,7 @@ impl<'input> Instantiator<'input> {
     fn instantiate_abstract(
         &mut self,
         instance: &Instance,
+        parent_group: GroupBuilderPtr,
         net_map: &BTreeMap<String, String>,
         component: &Component,
     ) -> error::Result<()> {
@@ -128,20 +179,25 @@ impl<'input> Instantiator<'input> {
                 )));
             }
         }
+
+        let group = GroupBuilder::new(Some(parent_group), component.name.clone());
         for instance in &component.instances {
-            self.instantiate_internal(instance, &new_net_map)?;
+            self.instantiate_internal(instance, Rc::clone(&group), &new_net_map)?;
         }
+        GroupBuilder::build(group);
         Ok(())
     }
 
     fn instantiate_concrete(
         &mut self,
         instance: &Instance,
+        parent_group: GroupBuilderPtr,
         net_map: &BTreeMap<String, String>,
         component: &Component,
         prefix: &str,
     ) -> error::Result<()> {
         let reference = self.ref_gen.next(prefix);
+        parent_group.borrow_mut().component(reference.clone());
         self.circuit.instances.push(ComponentInstance::new(
             reference.clone(),
             instance
