@@ -73,6 +73,10 @@ impl Instance {
             .find(|&&(ref name, _)| *name == pin_name)
             .map(|tup| &tup.1)
     }
+
+    pub fn value(&self) -> &str {
+        self.value.as_ref().unwrap_or(&self.name)
+    }
 }
 
 #[derive(Default, Debug)]
@@ -180,10 +184,10 @@ impl<'a> IntoIterator for &'a NetList {
 #[derive(Debug)]
 pub struct Component {
     pub tag: SrcTag,
-    pub name: String,
-    pub is_abstract: bool,
-    pub footprint: Option<String>,
-    pub prefix: Option<String>,
+    name: String,
+    is_abstract: bool,
+    footprint: Option<String>,
+    prefix: Option<String>,
     pub pins: PinMap,
     pub nets: NetList,
     pub instances: Vec<Instance>,
@@ -201,6 +205,32 @@ impl Component {
             nets: Default::default(),
             instances: Vec::new(),
         }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn is_abstract(&self) -> bool {
+        self.is_abstract
+    }
+
+    pub fn footprint(&self) -> &str {
+        assert!(!self.is_abstract);
+        self.footprint.as_ref().unwrap()
+    }
+
+    pub fn set_footprint(&mut self, footprint: String) {
+        self.footprint = Some(footprint);
+    }
+
+    pub fn prefix(&self) -> &str {
+        assert!(!self.is_abstract);
+        self.prefix.as_ref().unwrap()
+    }
+
+    pub fn set_prefix(&mut self, prefix: String) {
+        self.prefix = Some(prefix);
     }
 
     pub fn validate_parameters(&self, units: &SrcUnits) -> error::Result<()> {

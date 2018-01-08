@@ -155,9 +155,9 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                     ));
                     continue;
                 }
-                _ if c.is_ascii_alphabetic() => {
+                _ if c.is_ascii() && c.is_alphabetic() => {
                     let (symbol, next) = take_while(Some(c), &mut chars, |c| {
-                        c.is_ascii_alphanumeric() || c == '_'
+                        c.is_ascii() && c.is_alphanumeric() || c == '_'
                     });
                     let symbol_len = symbol.len();
                     lookahead = next;
@@ -225,7 +225,7 @@ pub fn validate_symbol(
     offset: usize,
     val: String,
 ) -> Result<String, ParseError<usize, Tok, error::Error>> {
-    let valid_char = |c: char| c.is_ascii_alphanumeric() || c == '_';
+    let valid_char = |c: char| c.is_ascii() && c.is_alphanumeric() || c == '_';
 
     for c in val.chars() {
         if !valid_char(c) {

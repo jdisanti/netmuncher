@@ -208,12 +208,12 @@ StartComponent: Component = {
 ContinueComponent: Component = {
     <cc:ContinueComponent> "footprint" "=" <t:Quote> ";" => {
         let mut component = cc;
-        component.footprint = Some(t);
+        component.set_footprint(t);
         component
     },
     <cc:ContinueComponent> "prefix" "=" <t:Quote> ";" => {
         let mut component = cc;
-        component.prefix = Some(t);
+        component.set_prefix(t);
         component
     },
     <offset:@L> <cc:ContinueComponent> "pin" <names:SymbolList> ":" <pt:PinType> "=" <nl:NumList> ";" =>? {
@@ -234,7 +234,7 @@ ContinueComponent: Component = {
             }).map_err(|e| {
                 ParseError::User {
                     error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
-                        format!("{}: error in component {}", locator.locate(offset), component.name)
+                        format!("{}: error in component {}", locator.locate(offset), component.name())
                     )))
                 }
             })?;
@@ -247,7 +247,7 @@ ContinueComponent: Component = {
             .map_err(|e| {
                 ParseError::User {
                     error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
-                        format!("{}: error in component {}", locator.locate(offset), component.name)
+                        format!("{}: error in component {}", locator.locate(offset), component.name())
                     )))
                 }
             })?;

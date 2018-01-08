@@ -7,8 +7,8 @@
 // copied, modified, or distributed except according to those terms.
 //
 
-extern crate netmuncher;
 extern crate error_chain;
+extern crate netmuncher;
 
 use std::fs::File;
 use std::io::prelude::*;

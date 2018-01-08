@@ -149,15 +149,15 @@ impl Circuit {
     fn from_components(units: &SrcUnits, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
         let mut components = BTreeMap::new();
         for component in input {
-            if components.contains_key(&component.name) {
+            if components.contains_key(component.name()) {
                 bail!(ErrorKind::CircuitError(format!(
                     "component {} is defined more than once",
-                    component.name
+                    component.name()
                 )));
             }
             component.validate_parameters(units)?;
             component.validate_pins(units)?;
-            components.insert(component.name.clone(), component);
+            components.insert(component.name().into(), component);
         }
 
         if let Some(main_component) = components.get("Main") {
