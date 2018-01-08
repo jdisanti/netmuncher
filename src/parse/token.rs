@@ -11,7 +11,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use error::{self, ErrorKind};
-use parse::src_unit::Locator;
+use parse::source::Locator;
 
 use lalrpop_util::ParseError;
 
@@ -46,6 +46,7 @@ pub enum Tok {
     KeywordPrefix,
     KeywordRequire,
     KeywordTristate,
+    KeywordUnit,
     KeywordValue,
 }
 
@@ -81,6 +82,7 @@ impl fmt::Display for Tok {
             Tok::KeywordPrefix => write!(f, "prefix"),
             Tok::KeywordRequire => write!(f, "require"),
             Tok::KeywordTristate => write!(f, "tristate"),
+            Tok::KeywordUnit => write!(f, "unit"),
             Tok::KeywordValue => write!(f, "value"),
         }
     }
@@ -178,6 +180,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                         "prefix" => tokens.push((start, Tok::KeywordPrefix, start + 6)),
                         "require" => tokens.push((start, Tok::KeywordRequire, start + 7)),
                         "tristate" => tokens.push((start, Tok::KeywordTristate, start + 8)),
+                        "unit" => tokens.push((start, Tok::KeywordUnit, start + 4)),
                         "value" => tokens.push((start, Tok::KeywordValue, start + 8)),
                         _ => tokens.push((start, Tok::Symbol(symbol), start + symbol_len)),
                     }

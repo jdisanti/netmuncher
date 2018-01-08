@@ -55,3 +55,10 @@ fn global_nets() {
     let actual = compile("tests/valid/global_nets.nm");
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn units() {
+    let expected = load("tests/valid/units.net");
+    let actual = compile("tests/valid/units.nm");
+    assert_eq!(expected, actual);
+}

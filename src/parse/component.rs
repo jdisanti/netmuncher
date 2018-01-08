@@ -10,8 +10,7 @@
 use std::fmt;
 
 use error;
-use parse::src_tag::SrcTag;
-use parse::src_unit::SrcUnits;
+use parse::source::{Locator, Sources, SrcTag};
 
 macro_rules! err {
     ($msg:expr) => {
@@ -42,11 +41,38 @@ impl fmt::Display for PinNum {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
+pub struct UnitPin {
+    pub name: String,
+    pub typ: PinType,
+    pub nums: Vec<PinNum>,
+}
+
+impl UnitPin {
+    pub fn new(name: String, typ: PinType, nums: Vec<PinNum>) -> UnitPin {
+        UnitPin {
+            name: name,
+            typ: typ,
+            nums: nums,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Pin {
     pub name: String,
     pub typ: PinType,
     pub num: PinNum,
+}
+
+impl Pin {
+    pub fn new(name: String, typ: PinType, num: PinNum) -> Pin {
+        Pin {
+            name: name,
+            typ: typ,
+            num: num,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -74,12 +100,12 @@ impl Instance {
             .map(|tup| &tup.1)
     }
 
-    pub fn value(&self) -> &str {
-        self.value.as_ref().unwrap_or(&self.name)
+    pub fn value(&self) -> Option<&str> {
+        self.value.as_ref().map(|v| v as &str)
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct PinMap {
     pins: Vec<Pin>,
 }
@@ -127,6 +153,15 @@ impl<'a> IntoIterator for &'a PinMap {
 
     fn into_iter(self) -> Self::IntoIter {
         (&self.pins).into_iter()
+    }
+}
+
+impl IntoIterator for PinMap {
+    type Item = Pin;
+    type IntoIter = ::std::vec::IntoIter<Pin>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.pins.into_iter()
     }
 }
 
@@ -181,6 +216,17 @@ impl<'a> IntoIterator for &'a NetList {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Unit {
+    pub pins: PinMap,
+}
+
+impl Unit {
+    pub fn new() -> Unit {
+        Default::default()
+    }
+}
+
 #[derive(Debug)]
 pub struct Component {
     pub tag: SrcTag,
@@ -188,27 +234,65 @@ pub struct Component {
     is_abstract: bool,
     footprint: Option<String>,
     prefix: Option<String>,
-    pub pins: PinMap,
+    default_value: String,
     pub nets: NetList,
     pub instances: Vec<Instance>,
+    pub units: Vec<Unit>,
 }
 
 impl Component {
     pub fn new(tag: SrcTag, name: String, is_abstract: bool) -> Component {
         Component {
             tag: tag,
-            name: name,
+            name: name.clone(),
             is_abstract: is_abstract,
             footprint: None,
             prefix: None,
-            pins: Default::default(),
+            default_value: name,
             nets: Default::default(),
             instances: Vec::new(),
+            units: vec![Unit::new()],
         }
+    }
+
+    pub fn add_pin(&mut self, pin: Pin) -> error::Result<()> {
+        for unit in &mut self.units {
+            unit.pins.add_pin(pin.clone())?;
+        }
+
+        Ok(())
+    }
+
+    pub fn take_pins(&mut self) -> PinMap {
+        let mut result: PinMap = Default::default();
+        ::std::mem::swap(&mut result, &mut self.units[0].pins);
+        result
+    }
+
+    pub fn abstract_pins(&self) -> &PinMap {
+        assert!(self.is_abstract);
+        &self.units[0].pins
+    }
+
+    pub fn pins(&self) -> &PinMap {
+        assert!(!self.is_abstract && !self.has_units());
+        &self.units[0].pins
+    }
+
+    pub fn has_units(&self) -> bool {
+        self.units.len() > 1
     }
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn default_value(&self) -> &str {
+        &self.default_value
+    }
+
+    pub fn set_default_value(&mut self, value: String) {
+        self.default_value = value;
     }
 
     pub fn is_abstract(&self) -> bool {
@@ -233,7 +317,7 @@ impl Component {
         self.prefix = Some(prefix);
     }
 
-    pub fn validate_parameters(&self, units: &SrcUnits) -> error::Result<()> {
+    pub fn validate_parameters(&self, units: &Sources) -> error::Result<()> {
         // short names to avoid line wrapping on errors
         let n = &self.name;
         let l = || units.locate(self.tag);
@@ -262,22 +346,81 @@ impl Component {
         Ok(())
     }
 
-    pub fn validate_pins(&self, units: &SrcUnits) -> error::Result<()> {
-        if self.pins.is_empty() {
-            return Ok(());
+    pub fn validate_units(&self, sources: &Sources) -> error::Result<()> {
+        let mut pin_nums = Vec::new();
+        for unit in &self.units {
+            pin_nums.extend((&unit.pins).into_iter().map(|p| p.num.0));
         }
+        pin_nums.sort();
 
-        for i in 0..self.pins.len() {
-            let pin_num = PinNum((i + 1) as u32);
-            if !self.pins.find_by_num(pin_num).is_some() {
+        for i in 0..pin_nums.len() {
+            let pin_num = (i + 1) as u32;
+            if pin_nums[i] != pin_num {
                 err!(
                     "{}: component {} is missing some pins (take a look at pin {})",
-                    units.locate(self.tag),
+                    sources.locate(self.tag),
                     self.name,
                     pin_num
                 );
             }
         }
+        Ok(())
+    }
+
+    pub fn add_unit_pins(
+        &mut self,
+        locator: &Locator,
+        offset: usize,
+        mut unit_pins: Vec<UnitPin>,
+    ) -> error::Result<()> {
+        if self.has_units() {
+            err!(
+                "{}: cannot have multiple unit specifications in component {}",
+                locator.locate(offset),
+                self.name
+            );
+        }
+
+        if unit_pins.is_empty() {
+            err!(
+                "{}: unit definition in {} must have at least one pin",
+                locator.locate(offset),
+                self.name
+            );
+        }
+
+        let mut pin_lens: Vec<usize> = unit_pins.iter().map(|pin| pin.nums.len()).collect();
+        pin_lens.sort();
+        pin_lens.dedup();
+        if 1 != pin_lens.len() {
+            err!(
+                "{}: unit definition in {} doesn't have an equal number of pin numbers for each pin",
+                locator.locate(offset),
+                self.name
+            );
+        }
+
+        let unit_count = pin_lens[0];
+        let mut units = Vec::new();
+        let mut current_pins = Some(self.take_pins());
+        for _ in 0..unit_count {
+            let mut unit = Unit::new();
+            // Add the non-unit pins to the first unit
+            if let Some(pins) = current_pins.take() {
+                for pin in pins.into_iter() {
+                    unit.pins.add_pin(pin)?;
+                }
+            }
+            for unit_pin in &mut unit_pins {
+                unit.pins.add_pin(Pin::new(
+                    unit_pin.name.clone(),
+                    unit_pin.typ,
+                    unit_pin.nums.remove(0),
+                ))?;
+            }
+            units.push(unit);
+        }
+        self.units = units;
 
         Ok(())
     }

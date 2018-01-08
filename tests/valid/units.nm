@@ -1,0 +1,59 @@
+component QuadNAND {
+    prefix = "U";
+    footprint = "quad_nand";
+    value = "74HC00";
+
+    pin VCC: power_in = 14;
+    pin GND: power_in = 7;
+
+    unit {
+        pin A: input = 1, 4, 9, 12;
+        pin B: input = 2, 5, 10, 13;
+        pin Y: output = 3, 6, 8, 11;
+    }
+}
+
+component Power {
+    prefix = "J";
+    footprint = "power";
+
+    pin VCC: power_out = 1;
+    pin GND: power_out = 2;
+}
+
+component Output {
+    prefix = "J";
+    footprint = "conn";
+
+    pin OUT: input = 1;
+}
+
+global net VCC, GND;
+
+abstract component Main {
+    Power;
+
+    net P, Q, R;
+
+    QuadNAND {
+        A: VCC;
+        B: VCC;
+        Y: P;
+    }
+
+    QuadNAND {
+        A: VCC;
+        B: GND;
+        Y: Q;
+    }
+
+    QuadNAND {
+        A: P;
+        B: Q;
+        Y: R;
+    }
+
+    Output {
+        OUT: R;
+    }
+}

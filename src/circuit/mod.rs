@@ -24,7 +24,7 @@ use circuit::instantiator::Instantiator;
 use error::{self, ErrorKind};
 use parse;
 use parse::component::{Component, Instance, PinNum, PinType};
-use parse::src_unit::{Locator, SrcUnits};
+use parse::source::{Locator, Sources};
 
 #[derive(Debug)]
 pub struct ComponentInstance {
@@ -109,7 +109,7 @@ impl Circuit {
         let main_file = Path::new(file_name).file_name().unwrap();
         let main_path = Path::new(file_name).parent().unwrap();
 
-        let mut units = SrcUnits::new();
+        let mut sources = Sources::new();
 
         let mut modules_to_require: Vec<PathBuf> = Vec::new();
         let mut modules_required: Vec<PathBuf> = Vec::new();
@@ -120,9 +120,9 @@ impl Circuit {
         while let Some(path) = modules_to_require.pop() {
             if !modules_required.contains(&path) {
                 modules_required.push(path.clone());
-                let unit_id = units.push_unit(path.to_str().unwrap().into(), load_file(path)?);
-                let locator = Locator::new(&units, unit_id);
-                let parse_result = parse::parse_components(&locator, units.source(unit_id))?;
+                let source_id = sources.push_source(path.to_str().unwrap().into(), load_file(path)?);
+                let locator = Locator::new(&sources, source_id);
+                let parse_result = parse::parse_components(&locator, sources.code(source_id))?;
                 modules_to_require.extend(
                     parse_result
                         .requires
@@ -143,10 +143,10 @@ impl Circuit {
             ));
         }
 
-        Circuit::from_components(&units, &global_nets, components)
+        Circuit::from_components(&sources, &global_nets, components)
     }
 
-    fn from_components(units: &SrcUnits, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
+    fn from_components(sources: &Sources, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
         let mut components = BTreeMap::new();
         for component in input {
             if components.contains_key(component.name()) {
@@ -155,28 +155,28 @@ impl Circuit {
                     component.name()
                 )));
             }
-            component.validate_parameters(units)?;
-            component.validate_pins(units)?;
+            component.validate_parameters(sources)?;
+            component.validate_units(sources)?;
             components.insert(component.name().into(), component);
         }
 
         if let Some(main_component) = components.get("Main") {
             let mut circuit = Circuit::new();
 
-            if !main_component.pins.is_empty() {
+            if !main_component.abstract_pins().is_empty() {
                 bail!(ErrorKind::CircuitError(format!(
                     "{}: component Main cannot have pins",
-                    units.locate(main_component.tag)
+                    sources.locate(main_component.tag)
                 )));
             }
 
             let main_instance = Instance::new(main_component.tag, "Main".into());
-            Instantiator::new(&mut circuit, units, &components, global_nets).instantiate(&main_instance)?;
+            Instantiator::new(&mut circuit, sources, &components, global_nets).instantiate(&main_instance)?;
 
             if circuit.instances.is_empty() {
                 bail!(ErrorKind::CircuitError(format!(
                     "{}: empty circuit: no concrete components",
-                    units.locate(main_instance.tag),
+                    sources.locate(main_instance.tag),
                 )));
             }
 

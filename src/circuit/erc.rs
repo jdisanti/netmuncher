@@ -10,7 +10,7 @@
 use circuit::Node;
 use error::{self, ErrorKind};
 use parse::component::{Instance, PinType};
-use parse::src_unit::SrcUnits;
+use parse::source::Sources;
 
 #[derive(Debug, Eq, PartialEq)]
 enum ValidationResult {
@@ -19,14 +19,14 @@ enum ValidationResult {
     Error,
 }
 
-pub fn check_connection(units: &SrcUnits, instance: &Instance, current: &Node, others: &[Node]) -> error::Result<()> {
+pub fn check_connection(sources: &Sources, instance: &Instance, current: &Node, others: &[Node]) -> error::Result<()> {
     for other in others {
         match check(current.pin_type, other.pin_type) {
             ValidationResult::Valid => {}
             ValidationResult::Warning => {
                 println!(
                     "WARN: {}: in instantiation of {}, pin {} ({:?}) connected to {} ({:?})",
-                    units.locate(instance.tag),
+                    sources.locate(instance.tag),
                     instance.name,
                     current.pin_name,
                     current.pin_type,
@@ -37,7 +37,7 @@ pub fn check_connection(units: &SrcUnits, instance: &Instance, current: &Node, o
             ValidationResult::Error => {
                 bail!(ErrorKind::ERCError(format!(
                     "{}: in instantiation of {}, pin {} ({:?}) connected to {} ({:?})",
-                    units.locate(instance.tag),
+                    sources.locate(instance.tag),
                     instance.name,
                     current.pin_name,
                     current.pin_type,

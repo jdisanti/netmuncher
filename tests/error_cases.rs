@@ -199,3 +199,31 @@ fn invalid_quoted_symbol() {
         test("tests/errors/invalid_quoted_symbol.nm")
     );
 }
+
+#[test]
+fn multiple_unit_specs() {
+    assert_eq!(
+        "Error: tests/errors/multiple_unit_specs.nm:1:1: error in component Foo\nCaused by: \
+         tests/errors/multiple_unit_specs.nm:1:1: cannot have multiple unit specifications in component Foo\n",
+        test("tests/errors/multiple_unit_specs.nm")
+    );
+}
+
+#[test]
+fn unit_minimum_one_pin() {
+    assert_eq!(
+        "Error: tests/errors/unit_minimum_one_pin.nm:1:1: error in component Foo\nCaused by: \
+         tests/errors/unit_minimum_one_pin.nm:1:1: unit definition in Foo must have at least one pin\n",
+        test("tests/errors/unit_minimum_one_pin.nm")
+    );
+}
+
+#[test]
+fn uneven_units() {
+    assert_eq!(
+        "Error: tests/errors/uneven_units.nm:1:1: error in component Foo\nCaused by: \
+         tests/errors/uneven_units.nm:1:1: unit definition in Foo doesn\'t have an equal number of pin numbers for \
+         each pin\n",
+        test("tests/errors/uneven_units.nm")
+    );
+}

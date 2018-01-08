@@ -1,0 +1,28 @@
+component Foo {
+    prefix = "U";
+    footprint = "foo";
+
+    pin VCC: power_in = 1;
+    pin GND: power_in = 2;
+
+    unit {
+        pin A: input = 3, 4, 5;
+        pin B: input = 6, 7;
+    }
+}
+
+global net VCC, GND;
+
+abstract component Main {
+    net A, B;
+
+    Foo {
+        A: A,
+        B: B,
+    }
+
+    Foo {
+        A: A,
+        B: B,
+    }
+}

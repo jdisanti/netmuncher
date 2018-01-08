@@ -14,8 +14,8 @@ use std::rc::Rc;
 use circuit::{Circuit, ComponentGroup, ComponentInstance, Net, Node};
 use circuit::erc;
 use error::{self, ErrorKind};
-use parse::component::{Component, Instance, Pin, PinType};
-use parse::src_unit::SrcUnits;
+use parse::component::{Component, Instance, Pin, PinMap, PinType, Unit};
+use parse::source::Sources;
 
 struct ReferenceGenerator {
     counts: BTreeMap<String, usize>,
@@ -82,6 +82,57 @@ impl GroupBuilder {
     }
 }
 
+struct UnitRef<'a> {
+    reference: String,
+    unit: &'a Unit,
+}
+
+impl<'a> UnitRef<'a> {
+    fn new(reference: String, unit: &'a Unit) -> UnitRef<'a> {
+        UnitRef {
+            reference: reference,
+            unit: unit,
+        }
+    }
+}
+
+#[derive(Default)]
+struct UnitTracker<'a> {
+    available_units: BTreeMap<String, Vec<UnitRef<'a>>>,
+}
+
+impl<'a> UnitTracker<'a> {
+    fn new() -> UnitTracker<'a> {
+        Default::default()
+    }
+
+    fn add_component(&mut self, reference: &str, component: &'a Component) {
+        assert!(!self.available_units.contains_key(component.name()));
+        self.available_units.insert(
+            component.name().into(),
+            component
+                .units
+                .iter()
+                .map(|c| UnitRef::new(reference.into(), c))
+                .collect(),
+        );
+    }
+
+    fn next_unit<'b>(&'b mut self, component: &'a Component) -> Option<UnitRef<'a>> {
+        assert!(component.has_units());
+        if !self.available_units.contains_key(component.name()) {
+            None
+        } else {
+            let mut units = self.available_units.remove(component.name()).unwrap();
+            let unit = units.remove(0);
+            if !units.is_empty() {
+                self.available_units.insert(component.name().into(), units);
+            }
+            Some(unit)
+        }
+    }
+}
+
 struct InstantiationContext<'a> {
     instance: &'a Instance,
     parent_group: GroupBuilderPtr,
@@ -104,25 +155,27 @@ impl<'a> InstantiationContext<'a> {
 
 pub struct Instantiator<'input> {
     circuit: &'input mut Circuit,
-    units: &'input SrcUnits,
+    sources: &'input Sources,
     components: &'input BTreeMap<String, Component>,
     global_nets: &'input [String],
     ref_gen: ReferenceGenerator,
+    unit_tracker: UnitTracker<'input>,
 }
 
 impl<'input> Instantiator<'input> {
     pub fn new(
         circuit: &'input mut Circuit,
-        units: &'input SrcUnits,
+        sources: &'input Sources,
         components: &'input BTreeMap<String, Component>,
         global_nets: &'input [String],
     ) -> Instantiator<'input> {
         Instantiator {
             circuit: circuit,
-            units: units,
+            sources: sources,
             components: components,
             global_nets: global_nets,
             ref_gen: ReferenceGenerator::new(),
+            unit_tracker: UnitTracker::new(),
         }
     }
 
@@ -143,6 +196,8 @@ impl<'input> Instantiator<'input> {
         if let Some(component) = self.components.get(&ctx.instance.name) {
             if component.is_abstract() {
                 self.instantiate_abstract(ctx, component)?;
+            } else if component.has_units() {
+                self.instantiate_unit(ctx, component)?;
             } else {
                 self.instantiate_concrete(ctx, component)?;
             }
@@ -161,7 +216,7 @@ impl<'input> Instantiator<'input> {
             self.circuit.nets.push(Net::new(net_name));
         }
 
-        for pin in &component.pins {
+        for pin in component.abstract_pins() {
             if self.global_nets.contains(&pin.name) {
                 new_net_map.insert(pin.name.clone(), pin.name.clone());
             } else if let Some(mapped_net) = ctx.instance.find_connection(&pin.name) {
@@ -186,21 +241,41 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
-    fn instantiate_concrete(&mut self, ctx: &InstantiationContext, component: &Component) -> error::Result<()> {
-        let reference = self.ref_gen.next(component.prefix());
-        ctx.parent_group.borrow_mut().component(reference.clone());
+    fn instantiate_unit(&mut self, ctx: &InstantiationContext, component: &'input Component) -> error::Result<()> {
+        if let Some(unit_ref) = self.unit_tracker.next_unit(component) {
+            self.instantiate_pins(ctx, component, &unit_ref.reference, &unit_ref.unit.pins)?;
+        } else {
+            let reference = self.ref_gen.next(component.prefix());
+            ctx.parent_group.borrow_mut().component(reference.clone());
 
-        self.circuit.instances.push(ComponentInstance::new(
-            reference.clone(),
-            ctx.instance.value().into(),
-            component.footprint().into(),
-        ));
+            self.circuit.instances.push(ComponentInstance::new(
+                reference.clone(),
+                ctx.instance
+                    .value()
+                    .unwrap_or(component.default_value())
+                    .into(),
+                component.footprint().into(),
+            ));
 
-        for pin in &component.pins {
+            self.unit_tracker.add_component(&reference, component);
+            let unit_ref = self.unit_tracker.next_unit(component).unwrap();
+            self.instantiate_pins(ctx, component, &reference, &unit_ref.unit.pins)?;
+        }
+        Ok(())
+    }
+
+    fn instantiate_pins(
+        &mut self,
+        ctx: &InstantiationContext,
+        component: &Component,
+        reference: &str,
+        pins: &PinMap,
+    ) -> error::Result<()> {
+        for pin in pins {
             if pin.typ == PinType::NoConnect {
                 continue;
             }
-            let node = Node::new(reference.clone(), pin.num, pin.name.clone(), pin.typ);
+            let node = Node::new(reference.into(), pin.num, pin.name.clone(), pin.typ);
             if self.global_nets.contains(&pin.name) {
                 self.add_to_net(ctx.instance, &pin.name, node)?;
             } else if let Some(connection_name) = ctx.instance.find_connection(&pin.name) {
@@ -224,9 +299,26 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
+    fn instantiate_concrete(&mut self, ctx: &InstantiationContext, component: &Component) -> error::Result<()> {
+        let reference = self.ref_gen.next(component.prefix());
+        ctx.parent_group.borrow_mut().component(reference.clone());
+
+        self.circuit.instances.push(ComponentInstance::new(
+            reference.clone(),
+            ctx.instance
+                .value()
+                .unwrap_or(component.default_value())
+                .into(),
+            component.footprint().into(),
+        ));
+
+        self.instantiate_pins(ctx, component, &reference, component.pins())?;
+        Ok(())
+    }
+
     fn add_to_net(&mut self, instance: &Instance, net: &str, node: Node) -> error::Result<()> {
         if let Some(net) = self.circuit.find_net_mut(net) {
-            erc::check_connection(&self.units, instance, &node, &net.nodes)?;
+            erc::check_connection(&self.sources, instance, &node, &net.nodes)?;
             net.nodes.push(node);
         } else {
             unreachable!()
@@ -237,7 +329,7 @@ impl<'input> Instantiator<'input> {
     fn error_component_def_not_found(&self, ctx: &InstantiationContext) -> error::Error {
         ErrorKind::InstantiationError(format!(
             "{}: cannot find component definition for {}",
-            self.units.locate(ctx.instance.tag),
+            self.sources.locate(ctx.instance.tag),
             ctx.instance.name
         )).into()
     }
@@ -250,7 +342,7 @@ impl<'input> Instantiator<'input> {
     ) -> error::Error {
         ErrorKind::InstantiationError(format!(
             "{}: unmapped pin named {} in instantiation of component {}",
-            self.units.locate(ctx.instance.tag),
+            self.sources.locate(ctx.instance.tag),
             pin.name,
             component.name()
         )).into()
@@ -264,7 +356,7 @@ impl<'input> Instantiator<'input> {
     ) -> error::Error {
         ErrorKind::InstantiationError(format!(
             "{}: cannot find pin or net named {} in instantiation of component {}",
-            self.units.locate(ctx.instance.tag),
+            self.sources.locate(ctx.instance.tag),
             net,
             component.name()
         )).into()
@@ -278,7 +370,7 @@ impl<'input> Instantiator<'input> {
     ) -> error::Error {
         ErrorKind::InstantiationError(format!(
             "{}: cannot find connection named {} on component {}",
-            self.units.locate(ctx.instance.tag),
+            self.sources.locate(ctx.instance.tag),
             connection_name,
             component.name()
         )).into()
@@ -287,7 +379,7 @@ impl<'input> Instantiator<'input> {
     fn error_no_connection_stated(&self, ctx: &InstantiationContext, pin: &Pin, component: &Component) -> error::Error {
         ErrorKind::InstantiationError(format!(
             "{}: no connection stated for pin {} on component {}",
-            self.units.locate(ctx.instance.tag),
+            self.sources.locate(ctx.instance.tag),
             pin.name,
             component.name()
         )).into()

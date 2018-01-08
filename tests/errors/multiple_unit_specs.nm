@@ -1,0 +1,28 @@
+component Foo {
+    prefix = "U";
+    footprint = "foo";
+
+    unit {
+        pin A: input = 1, 2;
+        pin B: input = 3, 4;
+    }
+
+    unit {
+        pin A: input = 5, 6;
+        pin B: input = 7, 8;
+    }
+}
+
+abstract component Main {
+    net A, B;
+
+    Foo {
+        A: A,
+        B: B,
+    }
+
+    Foo {
+        A: A,
+        B: B,
+    }
+}

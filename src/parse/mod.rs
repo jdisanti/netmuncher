@@ -16,11 +16,10 @@ mod grammar;
 
 pub mod component;
 pub mod token;
-pub mod src_tag;
-pub mod src_unit;
+pub mod source;
 
 use parse::component::Component;
-use parse::src_unit::Locator;
+use parse::source::Locator;
 
 #[derive(Default)]
 pub struct ParseResult {

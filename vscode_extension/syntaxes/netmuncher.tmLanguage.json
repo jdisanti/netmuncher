@@ -30,7 +30,7 @@
         "keyword": {
             "comment": "Keyword",
             "name": "keyword.other.netmuncher",
-            "match": "\\b(abstract|component|footprint|global|input|net|noconnect|output|passive|pin|power_in|power_out|prefix|require|tristate|value)\\b"
+            "match": "\\b(abstract|component|footprint|global|input|net|noconnect|output|passive|pin|power_in|power_out|prefix|require|tristate|unit|value)\\b"
         }
     },
     "patterns": [
