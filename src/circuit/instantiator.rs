@@ -232,7 +232,7 @@ impl<'input> Instantiator<'input> {
             }
         }
 
-        let group = GroupBuilder::new(Some(Rc::clone(&ctx.parent_group)), component.name().into());
+        let group = GroupBuilder::new(Some(Rc::clone(&ctx.parent_group)), anon_ref);
         for instance in &component.instances {
             let child_ctx = InstantiationContext::new(instance, Rc::clone(&group), &new_net_map);
             self.instantiate_internal(&child_ctx)?;
