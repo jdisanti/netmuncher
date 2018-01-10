@@ -14,10 +14,12 @@ use std::path::{Path, PathBuf};
 
 mod erc;
 mod instantiator;
-mod serialize_kicad;
 mod serialize_dot;
+mod serialize_json;
+mod serialize_kicad;
 
 pub use circuit::serialize_dot::DotSerializer;
+pub use circuit::serialize_json::JsonSerializer;
 pub use circuit::serialize_kicad::KicadNetListSerializer;
 
 use circuit::instantiator::Instantiator;
@@ -26,7 +28,7 @@ use parse;
 use parse::component::{Component, Instance, PinNum, PinType};
 use parse::source::{Locator, Sources};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ComponentInstance {
     reference: String,
     value: String,
@@ -43,7 +45,7 @@ impl ComponentInstance {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Node {
     pub reference: String,
     pub pin: PinNum,
@@ -62,7 +64,7 @@ impl Node {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Net {
     pub name: String,
     pub nodes: Vec<Node>,
@@ -77,7 +79,7 @@ impl Net {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub struct ComponentGroup {
     pub name: String,
     pub components: Vec<String>,
@@ -93,7 +95,7 @@ impl ComponentGroup {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub struct Circuit {
     pub instances: Vec<ComponentInstance>,
     pub nets: Vec<Net>,

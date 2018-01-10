@@ -11,6 +11,7 @@ use std::fmt;
 
 use error;
 use parse::source::{Locator, Sources, SrcTag};
+use serde::{Serialize, Serializer};
 
 macro_rules! err {
     ($msg:expr) => {
@@ -21,7 +22,7 @@ macro_rules! err {
     };
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
 pub enum PinType {
     Input,
     Output,
@@ -34,6 +35,15 @@ pub enum PinType {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct PinNum(pub u32);
+
+impl Serialize for PinNum {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u32(self.0)
+    }
+}
 
 impl fmt::Display for PinNum {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {

@@ -19,9 +19,7 @@ struct Groups {
 
 impl Groups {
     fn new() -> Groups {
-        Groups {
-            groups: Vec::new(),
-        }
+        Groups { groups: Vec::new() }
     }
 
     fn generate_groups(circuit: &Circuit) -> Groups {
@@ -30,11 +28,7 @@ impl Groups {
         groups
     }
 
-    fn generate_groups_internal(
-        groups: &mut Groups,
-        component_groups: &[ComponentGroup],
-        path_prefix: &str,
-    ) {
+    fn generate_groups_internal(groups: &mut Groups, component_groups: &[ComponentGroup], path_prefix: &str) {
         for component_group in component_groups {
             let path = format!("{}/{}", path_prefix, component_group.name);
             if !component_group.sub_groups.is_empty() {
@@ -109,8 +103,7 @@ impl SerializeCircuit for KicadNetListSerializer {
             writeln!(
                 f,
                 "      (sheetpath (names {}/) (tstamps {}/))",
-                group.path,
-                group.path,
+                group.path, group.path,
             )?;
             writeln!(f, "      (tstamp {})", instance.reference)?;
             writeln!(f, "    )")?;

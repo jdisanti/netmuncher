@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::process;
 
 use error_chain::ChainedError;
-use netmuncher::circuit::{Circuit, DotSerializer, KicadNetListSerializer, SerializeCircuit};
+use netmuncher::circuit::{Circuit, DotSerializer, JsonSerializer, KicadNetListSerializer, SerializeCircuit};
 
 fn main() {
     let matches = clap::App::new("netmuncher")
@@ -64,6 +64,7 @@ fn main() {
     let output_result = match format {
         "kicad" => KicadNetListSerializer::new().serialize(&circuit),
         "dot" => DotSerializer::new().serialize(&circuit),
+        "json" => JsonSerializer::new().serialize(&circuit),
         _ => {
             println!("Unknown output format: {}", format);
             process::exit(1);

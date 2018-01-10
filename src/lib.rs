@@ -13,6 +13,12 @@ extern crate regex;
 #[macro_use]
 extern crate error_chain;
 
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
+
 mod parse;
 pub mod circuit;
 pub mod error;
