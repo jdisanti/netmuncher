@@ -1,0 +1,26 @@
+component ConcreteThing {
+    prefix = "U";
+    footprint = "thing";
+
+    pin IN: input = 1;
+    pin OUT: output = 2;
+}
+
+abstract component AbstractThing {
+    pin ABSTRACT_IN: input = 1;
+    pin ABSTRACT_OUT: output = 2;
+
+    ConcreteThing {
+        IN: ABSTRACT_OUT;
+        OUT: ABSTRACT_IN;
+    }
+}
+
+abstract component Main {
+    net X, Y;
+
+    AbstractThing {
+        ABSTRACT_IN: X;
+        ABSTRACT_OUT: Y;
+    }
+}

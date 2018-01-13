@@ -12,10 +12,8 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use circuit::{Circuit, ComponentGroup, ComponentInstance, Net, Node};
-use circuit::erc;
 use error;
 use parse::component::{Component, Instance, PinMap, PinType, Unit};
-use parse::source::Sources;
 
 struct ReferenceGenerator {
     counts: BTreeMap<String, usize>,
@@ -155,7 +153,6 @@ impl<'a> InstantiationContext<'a> {
 
 pub struct Instantiator<'input> {
     circuit: &'input mut Circuit,
-    sources: &'input Sources,
     components: &'input BTreeMap<String, Component>,
     global_nets: &'input [String],
     ref_gen: ReferenceGenerator,
@@ -165,13 +162,11 @@ pub struct Instantiator<'input> {
 impl<'input> Instantiator<'input> {
     pub fn new(
         circuit: &'input mut Circuit,
-        sources: &'input Sources,
         components: &'input BTreeMap<String, Component>,
         global_nets: &'input [String],
     ) -> Instantiator<'input> {
         Instantiator {
             circuit: circuit,
-            sources: sources,
             components: components,
             global_nets: global_nets,
             ref_gen: ReferenceGenerator::new(),
@@ -264,28 +259,23 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
-    fn instantiate_pins(
-        &mut self,
-        ctx: &InstantiationContext,
-        reference: &str,
-        pins: &PinMap,
-    ) -> error::Result<()> {
+    fn instantiate_pins(&mut self, ctx: &InstantiationContext, reference: &str, pins: &PinMap) -> error::Result<()> {
         for pin in pins {
             if pin.typ == PinType::NoConnect {
                 continue;
             }
             let node = Node::new(reference.into(), pin.num, pin.name.clone(), pin.typ);
             if self.global_nets.contains(&pin.name) {
-                self.add_to_net(ctx.instance, &pin.name, node)?;
+                self.add_to_net(&pin.name, node)?;
             } else if let Some(connection_name) = ctx.instance.find_connection(&pin.name) {
                 if connection_name != "noconnect" {
                     if self.global_nets.contains(connection_name) {
-                        self.add_to_net(ctx.instance, connection_name, node)?;
+                        self.add_to_net(connection_name, node)?;
                     } else if let Some(net_name) = ctx.net_map.get(connection_name) {
                         if net_name == "noconnect" {
                             // no connection; no op
                         } else {
-                            self.add_to_net(ctx.instance, net_name, node)?;
+                            self.add_to_net(net_name, node)?;
                         }
                     } else {
                         unreachable!("validation should catch this");
@@ -315,9 +305,8 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
-    fn add_to_net(&mut self, instance: &Instance, net: &str, node: Node) -> error::Result<()> {
+    fn add_to_net(&mut self, net: &str, node: Node) -> error::Result<()> {
         if let Some(net) = self.circuit.find_net_mut(net) {
-            erc::check_connection(&self.sources, instance, &node, &net.nodes)?;
             net.nodes.push(node);
         } else {
             unreachable!()

@@ -7,10 +7,10 @@
 // copied, modified, or distributed except according to those terms.
 //
 
+use lalrpop_util::ParseError;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use lalrpop_util::ParseError;
 
 use error;
 

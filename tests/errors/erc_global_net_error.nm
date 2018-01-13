@@ -1,0 +1,13 @@
+component Foo {
+    prefix = "U";
+    footprint = "foo";
+
+    pin VCC: power_out = 1;
+}
+
+global net VCC;
+
+abstract component Main {
+    Foo;
+    Foo;
+}

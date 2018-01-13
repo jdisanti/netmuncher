@@ -9,7 +9,6 @@
 
 use std::collections::BTreeMap;
 
-mod erc;
 mod instantiator;
 mod serialize_dot;
 mod serialize_json;
@@ -110,7 +109,8 @@ impl Circuit {
     }
 
     fn from_components(sources: &Sources, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
-        let components: BTreeMap<String, Component> = input.into_iter()
+        let components: BTreeMap<String, Component> = input
+            .into_iter()
             .map(|c| (String::from(c.name()), c))
             .collect();
 
@@ -118,7 +118,7 @@ impl Circuit {
         let mut circuit = Circuit::new();
 
         let main_instance = Instance::new(main_component.tag, "Main".into());
-        Instantiator::new(&mut circuit, sources, &components, global_nets).instantiate(&main_instance)?;
+        Instantiator::new(&mut circuit, &components, global_nets).instantiate(&main_instance)?;
 
         if circuit.instances.is_empty() {
             bail!(ErrorKind::CircuitError(format!(

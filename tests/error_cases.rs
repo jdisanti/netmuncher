@@ -16,7 +16,7 @@ use netmuncher::circuit::Circuit;
 fn test(file_name: &str) -> String {
     Circuit::compile(file_name)
         .err()
-        .unwrap()
+        .expect("expected error, but there was none")
         .display_chain()
         .to_string()
 }
@@ -137,7 +137,8 @@ fn missing_connection() {
 #[test]
 fn cannot_find_connection() {
     assert_eq!(
-        "Error: tests/errors/cannot_find_connection.nm:25:5: cannot find pin or net named asdf in instantiation of component C\n",
+        "Error: tests/errors/cannot_find_connection.nm:25:5: cannot find pin or net named asdf in instantiation of \
+         component C\n",
         test("tests/errors/cannot_find_connection.nm")
     );
 }
@@ -168,10 +169,29 @@ fn missing_mapped_net() {
 }
 
 #[test]
-fn erc_error() {
+fn erc_global_net_error() {
     assert_eq!(
-        "Error: tests/errors/erc_error.nm:15:5: in instantiation of Foo, pin A (PowerOut) connected to A (PowerOut)\n",
-        test("tests/errors/erc_error.nm")
+        "Error: tests/errors/erc_global_net_error.nm:11:5: in instantiation of Foo, pin VCC (PowerOut) is connected \
+         by net VCC to pin VCC (PowerOut) of instantiation Foo at tests/errors/erc_global_net_error.nm:12:5\n",
+        test("tests/errors/erc_global_net_error.nm")
+    );
+}
+
+#[test]
+fn erc_local_net_error() {
+    assert_eq!(
+        "Error: tests/errors/erc_local_net_error.nm:11:5: in instantiation of Foo, pin A (PowerOut) is connected by \
+         net VCC to pin A (PowerOut) of instantiation Foo at tests/errors/erc_local_net_error.nm:15:5\n",
+        test("tests/errors/erc_local_net_error.nm")
+    );
+}
+
+#[test]
+fn erc_pin_to_pin_error() {
+    assert_eq!(
+        "Error: tests/errors/erc_pin_to_pin_error.nm:13:5: in instantiation of ConcreteThing, pin ABSTRACT_IN (Input) \
+         mapped to OUT (Output)\n",
+        test("tests/errors/erc_pin_to_pin_error.nm")
     );
 }
 

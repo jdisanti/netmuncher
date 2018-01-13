@@ -68,7 +68,7 @@ impl UnitPin {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pin {
     pub name: String,
     pub typ: PinType,
