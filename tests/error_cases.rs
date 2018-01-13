@@ -137,7 +137,7 @@ fn missing_connection() {
 #[test]
 fn cannot_find_connection() {
     assert_eq!(
-        "Error: tests/errors/cannot_find_connection.nm:25:5: cannot find connection named asdf on component C\n",
+        "Error: tests/errors/cannot_find_connection.nm:25:5: cannot find pin or net named asdf in instantiation of component C\n",
         test("tests/errors/cannot_find_connection.nm")
     );
 }
@@ -145,7 +145,7 @@ fn cannot_find_connection() {
 #[test]
 fn unmapped_pin() {
     assert_eq!(
-        "Error: tests/errors/unmapped_pin.nm:27:5: unmapped pin named G in instantiation of component B\n",
+        "Error: tests/errors/unmapped_pin.nm:27:5: no connection stated for pin G on component B\n",
         test("tests/errors/unmapped_pin.nm")
     );
 }

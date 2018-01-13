@@ -46,5 +46,9 @@ error_chain! {
             description("ERC error")
             display("{}", msg)
         }
+        ValidationError(msg: String) {
+            description("validation error")
+            display("{}", msg)
+        }
     }
 }

@@ -293,6 +293,10 @@ impl Component {
         self.units.len() > 1
     }
 
+    pub fn first_unit(&self) -> &Unit {
+        &self.units[0]
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

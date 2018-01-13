@@ -20,6 +20,7 @@ mod grammar;
 pub mod component;
 pub mod token;
 pub mod source;
+mod validate;
 
 use parse::component::Component;
 use parse::source::{Locator, Sources};
@@ -59,6 +60,8 @@ pub fn parse(file_name: &str) -> error::Result<ParseResult> {
         }
     }
 
+    validate::Validator::new(&sources, &global_nets, &components).validate()?;
+
     Ok(ParseResult {
         sources: sources,
         components: components,
@@ -78,7 +81,6 @@ impl ParseFileResult {
         Default::default()
     }
 }
-
 
 fn parse_file(locator: &Locator, source: &str) -> error::Result<ParseFileResult> {
     let tokens = token::tokenize(locator, source)?;

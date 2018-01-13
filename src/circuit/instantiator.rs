@@ -13,8 +13,8 @@ use std::rc::Rc;
 
 use circuit::{Circuit, ComponentGroup, ComponentInstance, Net, Node};
 use circuit::erc;
-use error::{self, ErrorKind};
-use parse::component::{Component, Instance, Pin, PinMap, PinType, Unit};
+use error;
+use parse::component::{Component, Instance, PinMap, PinType, Unit};
 use parse::source::Sources;
 
 struct ReferenceGenerator {
@@ -203,7 +203,7 @@ impl<'input> Instantiator<'input> {
             }
             Ok(())
         } else {
-            bail!(self.error_component_def_not_found(ctx));
+            unreachable!("validation should catch this");
         }
     }
 
@@ -225,10 +225,10 @@ impl<'input> Instantiator<'input> {
                 } else if let Some(net_name) = ctx.net_map.get(mapped_net) {
                     new_net_map.insert(pin.name.clone(), net_name.clone());
                 } else {
-                    bail!(self.error_missing_pin_in_instantiation(ctx, mapped_net, component));
+                    unreachable!("validation should catch this");
                 }
             } else if pin.typ != PinType::NoConnect {
-                bail!(self.error_unmapped_pin_in_instantiation(ctx, pin, component));
+                unreachable!("validation should catch this");
             }
         }
 
@@ -243,7 +243,7 @@ impl<'input> Instantiator<'input> {
 
     fn instantiate_unit(&mut self, ctx: &InstantiationContext, component: &'input Component) -> error::Result<()> {
         if let Some(unit_ref) = self.unit_tracker.next_unit(component) {
-            self.instantiate_pins(ctx, component, &unit_ref.reference, &unit_ref.unit.pins)?;
+            self.instantiate_pins(ctx, &unit_ref.reference, &unit_ref.unit.pins)?;
         } else {
             let reference = self.ref_gen.next(component.prefix());
             ctx.parent_group.borrow_mut().component(reference.clone());
@@ -259,7 +259,7 @@ impl<'input> Instantiator<'input> {
 
             self.unit_tracker.add_component(&reference, component);
             let unit_ref = self.unit_tracker.next_unit(component).unwrap();
-            self.instantiate_pins(ctx, component, &reference, &unit_ref.unit.pins)?;
+            self.instantiate_pins(ctx, &reference, &unit_ref.unit.pins)?;
         }
         Ok(())
     }
@@ -267,7 +267,6 @@ impl<'input> Instantiator<'input> {
     fn instantiate_pins(
         &mut self,
         ctx: &InstantiationContext,
-        component: &Component,
         reference: &str,
         pins: &PinMap,
     ) -> error::Result<()> {
@@ -289,11 +288,11 @@ impl<'input> Instantiator<'input> {
                             self.add_to_net(ctx.instance, net_name, node)?;
                         }
                     } else {
-                        bail!(self.error_no_connection_on_component(ctx, connection_name, component));
+                        unreachable!("validation should catch this");
                     }
                 }
             } else {
-                bail!(self.error_no_connection_stated(ctx, pin, component));
+                unreachable!("validation should catch this");
             };
         }
         Ok(())
@@ -312,7 +311,7 @@ impl<'input> Instantiator<'input> {
             component.footprint().into(),
         ));
 
-        self.instantiate_pins(ctx, component, &reference, component.pins())?;
+        self.instantiate_pins(ctx, &reference, component.pins())?;
         Ok(())
     }
 
@@ -324,64 +323,5 @@ impl<'input> Instantiator<'input> {
             unreachable!()
         }
         Ok(())
-    }
-
-    fn error_component_def_not_found(&self, ctx: &InstantiationContext) -> error::Error {
-        ErrorKind::InstantiationError(format!(
-            "{}: cannot find component definition for {}",
-            self.sources.locate(ctx.instance.tag),
-            ctx.instance.name
-        )).into()
-    }
-
-    fn error_unmapped_pin_in_instantiation(
-        &self,
-        ctx: &InstantiationContext,
-        pin: &Pin,
-        component: &Component,
-    ) -> error::Error {
-        ErrorKind::InstantiationError(format!(
-            "{}: unmapped pin named {} in instantiation of component {}",
-            self.sources.locate(ctx.instance.tag),
-            pin.name,
-            component.name()
-        )).into()
-    }
-
-    fn error_missing_pin_in_instantiation(
-        &self,
-        ctx: &InstantiationContext,
-        net: &str,
-        component: &Component,
-    ) -> error::Error {
-        ErrorKind::InstantiationError(format!(
-            "{}: cannot find pin or net named {} in instantiation of component {}",
-            self.sources.locate(ctx.instance.tag),
-            net,
-            component.name()
-        )).into()
-    }
-
-    fn error_no_connection_on_component(
-        &self,
-        ctx: &InstantiationContext,
-        connection_name: &str,
-        component: &Component,
-    ) -> error::Error {
-        ErrorKind::InstantiationError(format!(
-            "{}: cannot find connection named {} on component {}",
-            self.sources.locate(ctx.instance.tag),
-            connection_name,
-            component.name()
-        )).into()
-    }
-
-    fn error_no_connection_stated(&self, ctx: &InstantiationContext, pin: &Pin, component: &Component) -> error::Error {
-        ErrorKind::InstantiationError(format!(
-            "{}: no connection stated for pin {} on component {}",
-            self.sources.locate(ctx.instance.tag),
-            pin.name,
-            component.name()
-        )).into()
     }
 }
