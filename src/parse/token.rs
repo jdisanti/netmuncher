@@ -234,7 +234,8 @@ pub fn validate_symbol(
         if !valid_char(c) {
             return Err(ParseError::User {
                 error: ErrorKind::ParseError(format!(
-                    "{}: invalid character '{}' in symbol. Symbols must be alphanumeric with underscores.",
+                    "{}: invalid character '{}' in symbol. Symbols must be alphanumeric with \
+                     underscores.",
                     locator.locate(offset),
                     c
                 )).into(),

@@ -14,31 +14,7 @@ use std::rc::Rc;
 use circuit::{Circuit, ComponentGroup, ComponentInstance, Net, Node};
 use error;
 use parse::component::{Component, Instance, PinMap, PinType, Unit};
-
-struct ReferenceGenerator {
-    counts: BTreeMap<String, usize>,
-}
-
-impl ReferenceGenerator {
-    fn new() -> ReferenceGenerator {
-        ReferenceGenerator {
-            counts: BTreeMap::new(),
-        }
-    }
-
-    fn next(&mut self, prefix: &str) -> String {
-        if !self.counts.contains_key(prefix) {
-            self.counts.insert(String::from(prefix), 0);
-        }
-        if let Some(value) = self.counts.get_mut(prefix) {
-            *value += 1;
-            let reference = format!("{}{}", prefix, value);
-            reference
-        } else {
-            unreachable!()
-        }
-    }
-}
+use ref_gen::ReferenceGenerator;
 
 type GroupBuilderPtr = Rc<RefCell<GroupBuilder>>;
 
@@ -169,7 +145,7 @@ impl<'input> Instantiator<'input> {
             circuit: circuit,
             components: components,
             global_nets: global_nets,
-            ref_gen: ReferenceGenerator::new(),
+            ref_gen: ReferenceGenerator::new(""),
             unit_tracker: UnitTracker::new(),
         }
     }
@@ -202,7 +178,11 @@ impl<'input> Instantiator<'input> {
         }
     }
 
-    fn instantiate_abstract(&mut self, ctx: &InstantiationContext, component: &Component) -> error::Result<()> {
+    fn instantiate_abstract(
+        &mut self,
+        ctx: &InstantiationContext,
+        component: &Component,
+    ) -> error::Result<()> {
         let mut new_net_map = BTreeMap::new();
         let anon_ref = self.ref_gen.next(component.name());
         for net in &component.nets {
@@ -236,7 +216,11 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
-    fn instantiate_unit(&mut self, ctx: &InstantiationContext, component: &'input Component) -> error::Result<()> {
+    fn instantiate_unit(
+        &mut self,
+        ctx: &InstantiationContext,
+        component: &'input Component,
+    ) -> error::Result<()> {
         if let Some(unit_ref) = self.unit_tracker.next_unit(component) {
             self.instantiate_pins(ctx, &unit_ref.reference, &unit_ref.unit.pins)?;
         } else {
@@ -259,7 +243,12 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
-    fn instantiate_pins(&mut self, ctx: &InstantiationContext, reference: &str, pins: &PinMap) -> error::Result<()> {
+    fn instantiate_pins(
+        &mut self,
+        ctx: &InstantiationContext,
+        reference: &str,
+        pins: &PinMap,
+    ) -> error::Result<()> {
         for pin in pins {
             if pin.typ == PinType::NoConnect {
                 continue;
@@ -288,7 +277,11 @@ impl<'input> Instantiator<'input> {
         Ok(())
     }
 
-    fn instantiate_concrete(&mut self, ctx: &InstantiationContext, component: &Component) -> error::Result<()> {
+    fn instantiate_concrete(
+        &mut self,
+        ctx: &InstantiationContext,
+        component: &Component,
+    ) -> error::Result<()> {
         let reference = self.ref_gen.next(component.prefix());
         ctx.parent_group.borrow_mut().component(reference.clone());
 

@@ -86,7 +86,8 @@ fn parse_file(locator: &Locator, source: &str) -> error::Result<ParseFileResult>
     let tokens = token::tokenize(locator, source)?;
     grammar::parse_Source(&locator, tokens.into_iter()).map_err(|e| match e {
         ParseError::InvalidToken { location } => {
-            error::ErrorKind::ParseError(format!("{}: invalid token", locator.locate(location))).into()
+            error::ErrorKind::ParseError(format!("{}: invalid token", locator.locate(location)))
+                .into()
         }
         ParseError::UnrecognizedToken { token, expected } => match token {
             Some((location, token, _)) => error::ErrorKind::ParseError(format!(
@@ -95,7 +96,9 @@ fn parse_file(locator: &Locator, source: &str) -> error::Result<ParseFileResult>
                 token,
                 expected.join(", ")
             )).into(),
-            None => error::ErrorKind::ParseError(format!("{}: unexpected end of file", locator.name()).into()).into(),
+            None => error::ErrorKind::ParseError(
+                format!("{}: unexpected end of file", locator.name()).into(),
+            ).into(),
         },
         ParseError::ExtraToken { token } => error::ErrorKind::ParseError(format!(
             "{}: extra token {}",

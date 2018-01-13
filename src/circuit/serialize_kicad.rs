@@ -28,7 +28,11 @@ impl Groups {
         groups
     }
 
-    fn generate_groups_internal(groups: &mut Groups, component_groups: &[ComponentGroup], path_prefix: &str) {
+    fn generate_groups_internal(
+        groups: &mut Groups,
+        component_groups: &[ComponentGroup],
+        path_prefix: &str,
+    ) {
         for component_group in component_groups {
             let path = format!("{}/{}", path_prefix, component_group.name);
             if !component_group.sub_groups.is_empty() {

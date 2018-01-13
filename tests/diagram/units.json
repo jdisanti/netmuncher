@@ -1,0 +1,101 @@
+{
+    "global_nets": ["GND", "VCC"],
+    "nodes": [
+        {
+            "name": "Power_1",
+            "reference": "J1",
+            "input_pins": [],
+            "output_pins": [
+                "VCC",
+                "GND"
+            ],
+            "other_pins": [],
+            "child_nodes": []
+        },
+        {
+            "name": "QuadNAND_1",
+            "reference": "U1",
+            "input_pins": [
+                "A",
+                "B"
+            ],
+            "output_pins": [
+                "Y"
+            ],
+            "other_pins": [],
+            "child_nodes": []
+        },
+        {
+            "name": "QuadNAND_2",
+            "reference": "U1",
+            "input_pins": [
+                "A",
+                "B"
+            ],
+            "output_pins": [
+                "Y"
+            ],
+            "other_pins": [],
+            "child_nodes": []
+        },
+        {
+            "name": "QuadNAND_3",
+            "reference": "U1",
+            "input_pins": [
+                "A",
+                "B"
+            ],
+            "output_pins": [
+                "Y"
+            ],
+            "other_pins": [],
+            "child_nodes": []
+        },
+        {
+            "name": "Output_1",
+            "reference": "J2",
+            "input_pins": [],
+            "output_pins": [
+                "OUT"
+            ],
+            "other_pins": [],
+            "child_nodes": []
+        }
+    ],
+    "connections": [
+        {
+            "from": {
+                "typ": "Global",
+                "net": "VCC"
+            },
+            "to": {
+                "typ": "Node",
+                "node": "QuadNAND_1",
+                "pin": "A"
+            }
+        },
+        {
+            "from": {
+                "typ": "Global",
+                "net": "VCC"
+            },
+            "to": {
+                "typ": "Node",
+                "node": "QuadNAND_1",
+                "pin": "B"
+            }
+        },
+        {
+            "from": {
+                "typ": "Node",
+                "node": "QuadNAND_1",
+                "pin": "Y"
+            },
+            "to": {
+                "typ": "Node",
+                "node": "QuadNAND_3",
+                "pin": "A"
+            }
+        }
+    ]
+}

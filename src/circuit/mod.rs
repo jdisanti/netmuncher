@@ -11,11 +11,9 @@ use std::collections::BTreeMap;
 
 mod instantiator;
 mod serialize_dot;
-mod serialize_json;
 mod serialize_kicad;
 
 pub use circuit::serialize_dot::DotSerializer;
-pub use circuit::serialize_json::JsonSerializer;
 pub use circuit::serialize_kicad::KicadNetListSerializer;
 
 use circuit::instantiator::Instantiator;
@@ -24,7 +22,7 @@ use parse;
 use parse::component::{Component, Instance, PinNum, PinType};
 use parse::source::Sources;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct ComponentInstance {
     reference: String,
     value: String,
@@ -41,7 +39,7 @@ impl ComponentInstance {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct Node {
     pub reference: String,
     pub pin: PinNum,
@@ -60,7 +58,7 @@ impl Node {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct Net {
     pub name: String,
     pub nodes: Vec<Node>,
@@ -75,7 +73,7 @@ impl Net {
     }
 }
 
-#[derive(Default, Debug, Serialize)]
+#[derive(Default, Debug)]
 pub struct ComponentGroup {
     pub name: String,
     pub components: Vec<String>,
@@ -91,7 +89,7 @@ impl ComponentGroup {
     }
 }
 
-#[derive(Default, Debug, Serialize)]
+#[derive(Default, Debug)]
 pub struct Circuit {
     pub instances: Vec<ComponentInstance>,
     pub nets: Vec<Net>,
@@ -108,7 +106,11 @@ impl Circuit {
         Circuit::from_components(&result.sources, &result.global_nets, result.components)
     }
 
-    fn from_components(sources: &Sources, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
+    fn from_components(
+        sources: &Sources,
+        global_nets: &Vec<String>,
+        input: Vec<Component>,
+    ) -> error::Result<Circuit> {
         let components: BTreeMap<String, Component> = input
             .into_iter()
             .map(|c| (String::from(c.name()), c))

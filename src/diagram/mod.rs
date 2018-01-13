@@ -7,20 +7,7 @@
 // copied, modified, or distributed except according to those terms.
 //
 
-extern crate lalrpop_util;
-extern crate regex;
+mod compile;
+mod data;
 
-#[macro_use]
-extern crate error_chain;
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate serde;
-extern crate serde_json;
-
-mod parse;
-mod ref_gen;
-pub mod circuit;
-pub mod diagram;
-pub mod error;
+pub use self::data::*;

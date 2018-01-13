@@ -102,7 +102,10 @@ impl<'input> Validator<'input> {
 
     fn validate_component(&mut self, component: &'input Component) -> error::Result<()> {
         if component.is_abstract() {
-            let mut net_pins: BTreeMap<&'input String, Vec<(&'input Instance, &'input Pin)>> = BTreeMap::new();
+            let mut net_pins: BTreeMap<
+                &'input String,
+                Vec<(&'input Instance, &'input Pin)>,
+            > = BTreeMap::new();
             for instance in &component.instances {
                 self.validate_instance(component, instance)?;
                 for (net_name, pins) in &self.local_net_pins {
@@ -118,7 +121,10 @@ impl<'input> Validator<'input> {
         Ok(())
     }
 
-    fn validate_nets(&self, net_pins: &BTreeMap<&'input String, Vec<(&Instance, &Pin)>>) -> error::Result<()> {
+    fn validate_nets(
+        &self,
+        net_pins: &BTreeMap<&'input String, Vec<(&Instance, &Pin)>>,
+    ) -> error::Result<()> {
         for (net_name, pins) in net_pins {
             for &(first_instance, first_pin) in pins {
                 for &(second_instance, second_pin) in pins {
@@ -138,7 +144,12 @@ impl<'input> Validator<'input> {
         Ok(())
     }
 
-    fn add_global_net_pin(&mut self, net: &'input String, instance: &'input Instance, pin: &'input Pin) {
+    fn add_global_net_pin(
+        &mut self,
+        net: &'input String,
+        instance: &'input Instance,
+        pin: &'input Pin,
+    ) {
         if !self.global_net_pins.contains_key(net) {
             self.global_net_pins.insert(net, Vec::new());
         }
@@ -148,7 +159,12 @@ impl<'input> Validator<'input> {
             .push((instance, pin));
     }
 
-    fn add_local_net_pin(&mut self, net: &'input String, instance: &'input Instance, pin: &'input Pin) {
+    fn add_local_net_pin(
+        &mut self,
+        net: &'input String,
+        instance: &'input Instance,
+        pin: &'input Pin,
+    ) {
         if !self.local_net_pins.contains_key(net) {
             self.local_net_pins.insert(net, Vec::new());
         }
@@ -175,7 +191,8 @@ impl<'input> Validator<'input> {
                 if let Some(mapping) = instance.find_connection(&pin.name) {
                     if pin.typ == PinType::NoConnect && mapping != "noconnect" {
                         err!(
-                            "{}: cannot connect noconnect pin named {} in instantiation of component {}",
+                            "{}: cannot connect noconnect pin named {} in instantiation of \
+                             component {}",
                             self.sources.locate(instance.tag),
                             pin.name,
                             component.name()
@@ -188,7 +205,9 @@ impl<'input> Validator<'input> {
                         continue;
                     }
                     if mapping != "noconnect" {
-                        if let Some(connected_pin) = parent_component.abstract_pins().find_by_name(mapping) {
+                        if let Some(connected_pin) =
+                            parent_component.abstract_pins().find_by_name(mapping)
+                        {
                             self.parameter_rules_check(instance, connected_pin, pin)?;
                         } else if parent_component.nets.exists(mapping) {
                             if !component.is_abstract() {
@@ -196,7 +215,8 @@ impl<'input> Validator<'input> {
                             }
                         } else {
                             err!(
-                                "{}: cannot find pin or net named {} in instantiation of component {}",
+                                "{}: cannot find pin or net named {} in instantiation of \
+                                 component {}",
                                 self.sources.locate(instance.tag),
                                 mapping,
                                 component.name()
@@ -222,7 +242,12 @@ impl<'input> Validator<'input> {
         Ok(())
     }
 
-    fn parameter_rules_check(&self, instance: &Instance, instance_pin: &Pin, other_pin: &Pin) -> error::Result<()> {
+    fn parameter_rules_check(
+        &self,
+        instance: &Instance,
+        instance_pin: &Pin,
+        other_pin: &Pin,
+    ) -> error::Result<()> {
         match check_parameter_connection(instance_pin.typ, other_pin.typ) {
             ERCResult::Valid => Ok(()),
             r @ ERCResult::Warning | r @ ERCResult::Error => {
@@ -257,8 +282,8 @@ impl<'input> Validator<'input> {
             ERCResult::Valid => Ok(()),
             r @ ERCResult::Warning | r @ ERCResult::Error => {
                 let error = error::ErrorKind::ValidationError(format!(
-                    "{}: in instantiation of {}, pin {} ({:?}) is connected by net {} to pin {} ({:?}) of \
-                     instantiation {} at {}",
+                    "{}: in instantiation of {}, pin {} ({:?}) is connected by net {} to pin {} \
+                     ({:?}) of instantiation {} at {}",
                     self.sources.locate(first_instance.tag),
                     first_instance.name,
                     first_pin.name,

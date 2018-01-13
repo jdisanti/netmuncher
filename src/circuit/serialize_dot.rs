@@ -25,7 +25,12 @@ impl DotSerializer {
         }
     }
 
-    fn component(&mut self, f: &mut Write, circuit: &Circuit, reference: &str) -> error::Result<()> {
+    fn component(
+        &mut self,
+        f: &mut Write,
+        circuit: &Circuit,
+        reference: &str,
+    ) -> error::Result<()> {
         let instance = circuit
             .instances
             .iter()
@@ -65,7 +70,12 @@ impl DotSerializer {
         Ok(())
     }
 
-    fn group(&mut self, f: &mut Write, circuit: &Circuit, group: &ComponentGroup) -> error::Result<()> {
+    fn group(
+        &mut self,
+        f: &mut Write,
+        circuit: &Circuit,
+        group: &ComponentGroup,
+    ) -> error::Result<()> {
         writeln!(
             f,
             "{0:1$}subgraph \"cluster_{2}\" {{",

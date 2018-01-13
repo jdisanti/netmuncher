@@ -408,7 +408,8 @@ impl Component {
         pin_lens.dedup();
         if 1 != pin_lens.len() {
             err!(
-                "{}: unit definition in {} doesn't have an equal number of pin numbers for each pin",
+                "{}: unit definition in {} doesn't have an equal number of pin numbers for each \
+                 pin",
                 locator.locate(offset),
                 self.name
             );
