@@ -14,7 +14,7 @@ use error::{self, ErrorKind};
 use parse::component::*;
 use parse::token::{Tok, validate_symbol};
 use parse::source::Locator;
-use parse::ParseResult;
+use parse::ParseFileResult;
 
 use lalrpop_util::ParseError;
 
@@ -307,7 +307,7 @@ Require: String = {
     "require" <module:Quote> ";" => module,
 };
 
-pub Source: ParseResult = {
+pub Source: ParseFileResult = {
     <r:Source> "global" "net" <sl:SymbolList> ";" => {
         let mut result = r;
         result.global_nets.extend(sl.into_iter());
@@ -324,17 +324,17 @@ pub Source: ParseResult = {
         result
     },
     "global" "net" <sl:SymbolList> ";" => {
-        let mut result = ParseResult::new();
+        let mut result = ParseFileResult::new();
         result.global_nets.extend(sl.into_iter());
         result
     },
     <module:Require> => {
-        let mut result = ParseResult::new();
+        let mut result = ParseFileResult::new();
         result.requires.push(module);
         result
     },
     <component:CompleteComponent> => {
-        let mut result = ParseResult::new();
+        let mut result = ParseFileResult::new();
         result.components.push(component);
         result
     },

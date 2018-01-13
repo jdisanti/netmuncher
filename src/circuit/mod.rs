@@ -8,9 +8,6 @@
 //
 
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::{Path, PathBuf};
 
 mod erc;
 mod instantiator;
@@ -26,7 +23,7 @@ use circuit::instantiator::Instantiator;
 use error::{self, ErrorKind};
 use parse;
 use parse::component::{Component, Instance, PinNum, PinType};
-use parse::source::{Locator, Sources};
+use parse::source::Sources;
 
 #[derive(Debug, Serialize)]
 pub struct ComponentInstance {
@@ -108,44 +105,18 @@ impl Circuit {
     }
 
     pub fn compile(file_name: &str) -> error::Result<Circuit> {
-        let main_file = Path::new(file_name).file_name().unwrap();
-        let main_path = Path::new(file_name).parent().unwrap();
+        let mut result = parse::parse(file_name)?;
 
-        let mut sources = Sources::new();
-
-        let mut modules_to_require: Vec<PathBuf> = Vec::new();
-        let mut modules_required: Vec<PathBuf> = Vec::new();
-        modules_to_require.push(module_path(&main_path, &main_file).unwrap());
-
-        let mut global_nets: Vec<String> = Vec::new();
-        let mut components: Vec<Component> = Vec::new();
-        while let Some(path) = modules_to_require.pop() {
-            if !modules_required.contains(&path) {
-                modules_required.push(path.clone());
-                let source_id = sources.push_source(path.to_str().unwrap().into(), load_file(path)?);
-                let locator = Locator::new(&sources, source_id);
-                let parse_result = parse::parse_components(&locator, sources.code(source_id))?;
-                modules_to_require.extend(
-                    parse_result
-                        .requires
-                        .into_iter()
-                        .filter_map(|r| module_path(&main_path, &r)),
-                );
-                global_nets.extend(parse_result.global_nets.into_iter());
-                components.extend(parse_result.components.into_iter());
-            }
-        }
-
-        let original_net_size = global_nets.len();
-        global_nets.sort();
-        global_nets.dedup();
-        if original_net_size != global_nets.len() {
+        let original_net_size = result.global_nets.len();
+        result.global_nets.sort();
+        result.global_nets.dedup();
+        if original_net_size != result.global_nets.len() {
             bail!(ErrorKind::CircuitError(
                 "detected duplicate global nets".into()
             ));
         }
 
-        Circuit::from_components(&sources, &global_nets, components)
+        Circuit::from_components(&result.sources, &result.global_nets, result.components)
     }
 
     fn from_components(sources: &Sources, global_nets: &Vec<String>, input: Vec<Component>) -> error::Result<Circuit> {
@@ -213,22 +184,6 @@ impl Circuit {
 
     pub fn find_net_mut(&mut self, name: &str) -> Option<&mut Net> {
         self.nets.iter_mut().find(|n: &&mut Net| n.name == name)
-    }
-}
-
-fn load_file<P: AsRef<Path>>(file_name: P) -> error::Result<String> {
-    let mut file = File::open(file_name.as_ref())?;
-    let mut file_contents = String::new();
-    file.read_to_string(&mut file_contents)?;
-    Ok(file_contents)
-}
-
-fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathBuf> {
-    let path = main_path.join(module_name);
-    if path.is_file() {
-        Some(path)
-    } else {
-        None
     }
 }
 
