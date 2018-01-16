@@ -1,4 +1,4 @@
-abstract component Main {
+component Foo {
     pin FOO: input = 1;
     pin BAR: input = 1;
 }

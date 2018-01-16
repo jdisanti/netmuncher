@@ -1,0 +1,21 @@
+component Foo {
+    prefix = "U";
+    footprint = "foo";
+
+    pin A: input;
+    pin B: output;
+}
+
+abstract component Main {
+    net x, y;
+
+    Foo {
+        A: x;
+        B: y;
+    }
+
+    Foo {
+        A: y;
+        B: x;
+    }
+}

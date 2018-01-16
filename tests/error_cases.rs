@@ -50,7 +50,7 @@ fn duplicate_pin() {
 #[test]
 fn wrong_start_pin() {
     assert_eq!(
-        "Error: tests/errors/wrong_start_pin.nm:2:1: error in component Main\nCaused by: pin \
+        "Error: tests/errors/wrong_start_pin.nm:2:1: error in component Foo\nCaused by: pin \
          numbers must start at 1\n",
         test("tests/errors/wrong_start_pin.nm")
     );
@@ -59,7 +59,7 @@ fn wrong_start_pin() {
 #[test]
 fn duplicate_pin_number() {
     assert_eq!(
-        "Error: tests/errors/duplicate_pin_number.nm:1:1: error in component Main\nCaused by: pin \
+        "Error: tests/errors/duplicate_pin_number.nm:1:1: error in component Foo\nCaused by: pin \
          number 1 assigned to multiple names: BAR, FOO\n",
         test("tests/errors/duplicate_pin_number.nm")
     );
@@ -258,5 +258,23 @@ fn uneven_units() {
          tests/errors/uneven_units.nm:1:1: unit definition in Foo doesn\'t have an equal number \
          of pin numbers for each pin\n",
         test("tests/errors/uneven_units.nm")
+    );
+}
+
+#[test]
+fn concrete_component_requires_pin_num() {
+    assert_eq!(
+        "Error: tests/errors/concrete_component_require_pin_num.nm:1:1: concrete components must \
+         state pin numbers for pins\n",
+        test("tests/errors/concrete_component_require_pin_num.nm")
+    );
+}
+
+#[test]
+fn abstract_component_no_pin_num() {
+    assert_eq!(
+        "Error: tests/errors/abstract_component_no_pin_num.nm:1:1: abstract components shouldn\'t \
+         state pin numbers for pins\n",
+        test("tests/errors/abstract_component_no_pin_num.nm")
     );
 }

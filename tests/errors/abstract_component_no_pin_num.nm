@@ -1,0 +1,4 @@
+abstract component Foo {
+    pin A: input = 1;
+    pin B: input = 2;
+}

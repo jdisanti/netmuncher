@@ -1,6 +1,6 @@
 abstract component Foo {
-    pin X: passive = 1;
-    pin Y: passive = 2;
+    pin X: passive;
+    pin Y: passive;
 }
 
 abstract component Main {

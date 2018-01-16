@@ -1,5 +1,5 @@
 abstract component AbstractComponent {
-    pin A: passive = 1;
+    pin A: passive;
 }
 
 abstract component Main {

@@ -7,8 +7,8 @@ component ConcreteThing {
 }
 
 abstract component AbstractThing {
-    pin ABSTRACT_IN: input = 1;
-    pin ABSTRACT_OUT: output = 2;
+    pin ABSTRACT_IN: input;
+    pin ABSTRACT_OUT: output;
 
     ConcreteThing {
         IN: ABSTRACT_OUT;

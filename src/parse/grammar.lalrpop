@@ -242,7 +242,43 @@ ContinueComponent: Component = {
         component.set_default_value(t);
         component
     },
+    <offset:@L> <cc:ContinueComponent> "pin" <names:SymbolList> ":" <pt:PinType> ";" =>? {
+        let mut component = cc;
+        if !component.is_abstract() {
+            return Err(ParseError::User {
+                error: ErrorKind::ParseError(
+                    format!("{}: concrete components must state pin numbers for pins",
+                        locator.locate(offset))).into()
+            });
+        }
+
+        let mut next_pin_num = (component.abstract_pins().len() + 1) as u32;
+        for name in names {
+            component.add_pin(Pin {
+                name: name,
+                typ: pt,
+                num: PinNum(next_pin_num),
+            }).map_err(|e| {
+                ParseError::User {
+                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
+                        format!("{}: error in component {}", locator.locate(offset), component.name())
+                    )))
+                }
+            })?;
+            next_pin_num += 1;
+        }
+        Ok(component)
+    },
     <offset:@L> <cc:ContinueComponent> "pin" <names:SymbolList> ":" <pt:PinType> "=" <nl:NumList> ";" =>? {
+        let mut component = cc;
+        if component.is_abstract() {
+            return Err(ParseError::User {
+                error: ErrorKind::ParseError(
+                    format!("{}: abstract components shouldn't state pin numbers for pins",
+                        locator.locate(offset))).into()
+            });
+        }
+
         if names.len() != nl.len() {
             return Err(ParseError::User {
                 error: ErrorKind::ParseError(
@@ -251,7 +287,6 @@ ContinueComponent: Component = {
             });
         }
 
-        let mut component = cc;
         for (index, name) in names.iter().enumerate() {
             component.add_pin(Pin {
                 name: name.clone(),

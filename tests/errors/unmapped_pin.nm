@@ -10,7 +10,7 @@ component A {
 abstract component B {
     net H;
 
-    pin G: input = 1;
+    pin G: input;
 
     A {
         X: H;

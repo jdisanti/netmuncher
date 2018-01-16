@@ -16,10 +16,10 @@ component Inner {
 }
 
 abstract component LotsOfNoConnects {
-    pin VCC: power_in = 1;
-    pin GND: power_in = 2;
-    pin SomeInput: input = 3;
-    pin NC[0:4]: noconnect = (4..8);
+    pin VCC: power_in;
+    pin GND: power_in;
+    pin SomeInput: input;
+    pin NC[0:4]: noconnect;
 
     Inner {
         VCC: VCC;

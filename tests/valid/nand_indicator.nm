@@ -29,8 +29,8 @@ component "R" {
 // Abstract indicator component that combines
 // an LED and resistor together automatically
 abstract component Indicator {
-    pin VAL: input = 1;
-    pin GND: power_in = 2;
+    pin VAL: input;
+    pin GND: power_in;
 
     net LTR;
 

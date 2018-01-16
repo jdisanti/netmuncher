@@ -1,4 +1,4 @@
 abstract component Main {
-    pin FOO: input = 1;
-    pin FOO: input = 2;
+    pin FOO: input;
+    pin FOO: input;
 }
