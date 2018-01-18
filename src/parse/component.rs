@@ -30,6 +30,7 @@ pub enum PinType {
     PowerIn,
     PowerOut,
     Tristate,
+    Bidirectional,
     NoConnect,
 }
 

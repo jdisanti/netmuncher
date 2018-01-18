@@ -39,6 +39,7 @@ extern {
         Quote => Tok::Quote(<String>),
         Symbol => Tok::Symbol(<String>),
         "abstract" => Tok::KeywordAbstract,
+        "bidirectional" => Tok::KeywordBidirectional,
         "component" => Tok::KeywordComponent,
         "footprint" => Tok::KeywordFootprint,
         "global" => Tok::KeywordGlobal,
@@ -198,6 +199,7 @@ PinType: PinType = {
     "power_in" => PinType::PowerIn,
     "power_out" => PinType::PowerOut,
     "tristate" => PinType::Tristate,
+    "bidirectional" => PinType::Bidirectional,
     "noconnect" => PinType::NoConnect,
 }; 
 

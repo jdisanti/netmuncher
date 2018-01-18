@@ -322,31 +322,37 @@ fn check_parameter_connection(parent_pin: PinType, child_pin: PinType) -> ERCRes
 
     match parent_pin {
         Input => match child_pin {
-            Input | Passive => Valid,
+            Input | Passive | Bidirectional => Valid,
             Tristate | PowerIn => Warning,
             PowerOut | Output | NoConnect => Error,
         },
         Output => match child_pin {
-            Input | Output | Passive | PowerOut => Valid,
+            Input | Output | Passive | PowerOut | Bidirectional => Valid,
             Tristate | PowerIn => Warning,
             NoConnect => Error,
         },
         Passive => match child_pin {
-            Input | Output | Passive | PowerIn | PowerOut | Tristate => Valid,
+            Input | Output | Passive | PowerIn | PowerOut | Tristate | Bidirectional => Valid,
             NoConnect => Error,
         },
         PowerIn => match child_pin {
-            Input | Passive | PowerIn => Valid,
+            Input | Passive | PowerIn | Bidirectional => Valid,
             Tristate | PowerOut | Output | NoConnect => Error,
         },
         PowerOut => match child_pin {
             PowerIn | Input | Passive | PowerOut | Output => Valid,
+            Bidirectional => Warning,
             Tristate | NoConnect => Error,
         },
         Tristate => match child_pin {
-            Tristate | Input | Passive => Valid,
+            Tristate | Input | Passive | Bidirectional => Valid,
             PowerIn | Output => Warning,
             PowerOut | NoConnect => Error,
+        },
+        Bidirectional => match child_pin {
+            Bidirectional | Input | Output | Passive | PowerIn | Tristate => Valid,
+            PowerOut => Warning,
+            NoConnect => Error,
         },
         NoConnect => Error,
     }
@@ -358,31 +364,36 @@ fn check_electric_connection(first: PinType, second: PinType) -> ERCResult {
 
     match first {
         Input => match second {
-            Input | Output | Passive | PowerIn | PowerOut | Tristate => Valid,
+            Input | Output | Passive | PowerIn | PowerOut | Tristate | Bidirectional => Valid,
             NoConnect => Error,
         },
         Output => match second {
-            Input | Passive | PowerIn => Valid,
+            Input | Passive | PowerIn | Bidirectional => Valid,
             Tristate => Warning,
             NoConnect | PowerOut | Output => Error,
         },
         Passive => match second {
-            Input | Output | Passive | PowerIn | PowerOut | Tristate => Valid,
+            Input | Output | Passive | PowerIn | PowerOut | Tristate | Bidirectional => Valid,
             NoConnect => Error,
         },
         PowerIn => match second {
-            Input | Output | Passive | PowerIn | PowerOut => Valid,
+            Input | Output | Passive | PowerIn | PowerOut | Bidirectional => Valid,
             Tristate => Warning,
             NoConnect => Error,
         },
         PowerOut => match second {
             Input | Passive | PowerIn => Valid,
-            Tristate => Warning,
+            Bidirectional | Tristate => Warning,
             NoConnect | Output | PowerOut => Error,
         },
         Tristate => match second {
-            Input | Tristate | Passive => Valid,
+            Input | Tristate | Passive | Bidirectional => Valid,
             Output | PowerIn | PowerOut => Warning,
+            NoConnect => Error,
+        },
+        Bidirectional => match second {
+            Bidirectional | Input | Output | Passive | PowerIn | Tristate => Valid,
+            PowerOut => Warning,
             NoConnect => Error,
         },
         NoConnect => Error,

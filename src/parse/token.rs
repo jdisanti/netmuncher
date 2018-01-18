@@ -32,6 +32,7 @@ pub enum Tok {
     Quote(String),
     Symbol(String),
     KeywordAbstract,
+    KeywordBidirectional,
     KeywordComponent,
     KeywordFootprint,
     KeywordGlobal,
@@ -68,6 +69,7 @@ impl fmt::Display for Tok {
             Tok::Quote(_) => write!(f, "\""),
             Tok::Symbol(ref sym) => write!(f, "{}", sym),
             Tok::KeywordAbstract => write!(f, "abstract"),
+            Tok::KeywordBidirectional => write!(f, "bidirectional"),
             Tok::KeywordComponent => write!(f, "component"),
             Tok::KeywordFootprint => write!(f, "footprint"),
             Tok::KeywordGlobal => write!(f, "global"),
@@ -165,7 +167,8 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                     lookahead = next;
 
                     match &symbol as &str {
-                        "abstract" => tokens.push((start, Tok::KeywordAbstract, start + 9)),
+                        "abstract" => tokens.push((start, Tok::KeywordAbstract, start + 8)),
+                        "bidirectional" => tokens.push((start, Tok::KeywordBidirectional, start + 13)),
                         "component" => tokens.push((start, Tok::KeywordComponent, start + 9)),
                         "footprint" => tokens.push((start, Tok::KeywordFootprint, start + 9)),
                         "global" => tokens.push((start, Tok::KeywordGlobal, start + 6)),
