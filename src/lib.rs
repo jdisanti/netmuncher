@@ -11,6 +11,9 @@ extern crate lalrpop_util;
 extern crate regex;
 
 #[macro_use]
+extern crate derive_new;
+
+#[macro_use]
 extern crate error_chain;
 
 #[macro_use]
@@ -19,8 +22,10 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+#[macro_use]
+pub mod error;
+
 mod parse;
 mod ref_gen;
 pub mod circuit;
 pub mod diagram;
-pub mod error;

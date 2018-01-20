@@ -1,0 +1,4 @@
+component Foo {
+    footprint = "asdf";
+    footprint = "fdsa";
+}

@@ -13,15 +13,6 @@ use error;
 use parse::component::{Component, Instance, Pin, PinType};
 use parse::source::Sources;
 
-macro_rules! err {
-    ($msg:expr) => {
-        return Err(error::ErrorKind::ValidationError($msg.into()).into());
-    };
-    ($msg:expr $(, $prm:expr)*) => {
-        return Err(error::ErrorKind::ValidationError(format!($msg, $($prm,)*)).into());
-    };
-}
-
 pub struct Validator<'input> {
     sources: &'input Sources,
     global_nets: &'input Vec<String>,
@@ -251,7 +242,7 @@ impl<'input> Validator<'input> {
         match check_parameter_connection(instance_pin.typ, other_pin.typ) {
             ERCResult::Valid => Ok(()),
             r @ ERCResult::Warning | r @ ERCResult::Error => {
-                let error = error::ErrorKind::ValidationError(format!(
+                let error = error::ErrorKind::NetmuncherError(format!(
                     "{}: in instantiation of {}, pin {} ({:?}) mapped to {} ({:?})",
                     self.sources.locate(instance.tag),
                     instance.name,
@@ -281,7 +272,7 @@ impl<'input> Validator<'input> {
         match check_electric_connection(first_pin.typ, second_pin.typ) {
             ERCResult::Valid => Ok(()),
             r @ ERCResult::Warning | r @ ERCResult::Error => {
-                let error = error::ErrorKind::ValidationError(format!(
+                let error = error::ErrorKind::NetmuncherError(format!(
                     "{}: in instantiation of {}, pin {} ({:?}) is connected by net {} to pin {} \
                      ({:?}) of instantiation {} at {}",
                     self.sources.locate(first_instance.tag),

@@ -17,13 +17,16 @@ use error;
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod grammar;
 
+pub mod ast;
 pub mod component;
-pub mod token;
 pub mod source;
-mod validate;
+pub mod token;
+mod validator;
 
-use parse::component::Component;
-use parse::source::{Locator, Sources};
+use self::ast::{Ast, Tagged};
+use self::component::{Component, Instance, Pin, PinNum};
+use self::source::{Locator, Sources};
+use self::validator::Validator;
 
 pub struct ParseResult {
     pub sources: Sources,
@@ -60,7 +63,7 @@ pub fn parse(file_name: &str) -> error::Result<ParseResult> {
         }
     }
 
-    validate::Validator::new(&sources, &global_nets, &components).validate()?;
+    Validator::new(&sources, &global_nets, &components).validate()?;
 
     Ok(ParseResult {
         sources: sources,
@@ -80,33 +83,173 @@ impl ParseFileResult {
     pub fn new() -> ParseFileResult {
         Default::default()
     }
+
+    fn consider_tree(&mut self, locator: &Locator, tree: Ast) -> error::Result<()> {
+        match tree {
+            Ast::Require(require) => {
+                self.requires.push(require.module);
+            }
+            Ast::Nets(global_nets) => {
+                self.global_nets.extend(global_nets.nets.into_iter());
+            }
+            Ast::ComponentDef(component_def) => {
+                let offset = component_def.tag.offset;
+                let name = component_def.name.clone();
+                self.consider_component(locator, component_def)
+                    .map_err(|err| {
+                        err.chain_err(|| {
+                            error::ErrorKind::NetmuncherError(format!(
+                                "{}: error in component {}",
+                                locator.locate(offset),
+                                name
+                            ))
+                        })
+                    })?;
+            }
+            _ => unreachable!("grammar should not allow this to be reached"),
+        }
+        Ok(())
+    }
+
+    fn consider_component(
+        &mut self,
+        locator: &Locator,
+        def: ast::ComponentDef,
+    ) -> error::Result<()> {
+        let mut component = Component::new(def.tag, def.name, def.is_abstract);
+        for param in def.params {
+            let tag = param.tag();
+            self.consider_component_param(&mut component, param)
+                .map_err(|err| {
+                    error::ErrorKind::NetmuncherError(format!(
+                        "{}: {}",
+                        locator.locate(tag.offset),
+                        err
+                    ))
+                })?;
+        }
+        self.components.push(component);
+        Ok(())
+    }
+
+    fn consider_component_param(
+        &mut self,
+        component: &mut Component,
+        param: Ast,
+    ) -> error::Result<()> {
+        match param {
+            Ast::AbstractPins(abstract_pins) => {
+                if !component.is_abstract() {
+                    err!("concrete components must state pin numbers for pins");
+                }
+                for pin in abstract_pins {
+                    let num = (component.abstract_pins().len() + 1) as u32;
+                    component.add_pin(Pin::new(pin.name, pin.typ, PinNum(num)))?;
+                }
+            }
+            Ast::ConcretePins(concrete_pins) => {
+                if component.is_abstract() {
+                    err!("abstract components shouldn't state pin numbers for pins");
+                }
+                for pin in concrete_pins {
+                    component.add_pin(Pin::new(pin.name, pin.typ, pin.num))?;
+                }
+            }
+            Ast::Footprint(footprint) => {
+                if component.is_abstract() {
+                    err!("abstract components shouldn't have footprints");
+                }
+                component.set_footprint(footprint.footprint)?;
+            }
+            Ast::InstanceDef(instance_def) => {
+                self.consider_instance(component, instance_def)?;
+            }
+            Ast::Nets(nets) => {
+                if !component.is_abstract() {
+                    err!("concrete components shouldn't have nets");
+                }
+                for net in nets.nets {
+                    component.nets.add_net(net)?;
+                }
+            }
+            Ast::Prefix(prefix) => {
+                if component.is_abstract() {
+                    err!("abstract components shouldn't have prefixes");
+                }
+                component.set_prefix(prefix.prefix)?;
+            }
+            Ast::Value(value) => {
+                component.set_default_value(value.value);
+            }
+            Ast::Unit(unit) => {
+                component.add_unit_pins(unit.pins)?;
+            }
+            _ => unreachable!("grammar should not allow this to be reached"),
+        }
+        Ok(())
+    }
+
+    fn consider_instance(
+        &mut self,
+        component: &mut Component,
+        def: ast::InstanceDef,
+    ) -> error::Result<()> {
+        if !component.is_abstract() {
+            err!("concrete components cannot have instances");
+        }
+        let mut instance = Instance::new(def.tag, def.name);
+        for param in def.parameters {
+            match param {
+                Ast::Value(value) => {
+                    if instance.value.is_some() {
+                        err!("multiple values specified for instance");
+                    }
+                    instance.value = Some(value.value);
+                }
+                Ast::ConnectionMap(conn_map) => {
+                    instance
+                        .connections
+                        .extend(conn_map.connections.into_iter());
+                }
+                _ => unreachable!("grammar should not allow this to be reached"),
+            }
+        }
+        component.instances.push(instance);
+        Ok(())
+    }
 }
 
 fn parse_file(locator: &Locator, source: &str) -> error::Result<ParseFileResult> {
     let tokens = token::tokenize(locator, source)?;
-    grammar::parse_Source(&locator, tokens.into_iter()).map_err(|e| match e {
-        ParseError::InvalidToken { location } => {
-            error::ErrorKind::ParseError(format!("{}: invalid token", locator.locate(location)))
-                .into()
-        }
+    let trees = grammar::parse_Source(&locator, tokens.into_iter()).map_err(|e| match e {
+        ParseError::InvalidToken { location } => error::ErrorKind::NetmuncherError(format!(
+            "{}: invalid token",
+            locator.locate(location)
+        )).into(),
         ParseError::UnrecognizedToken { token, expected } => match token {
-            Some((location, token, _)) => error::ErrorKind::ParseError(format!(
+            Some((location, token, _)) => error::ErrorKind::NetmuncherError(format!(
                 "{}: unexpected token \"{}\". Expected one of: {}",
                 locator.locate(location),
                 token,
                 expected.join(", ")
             )).into(),
-            None => error::ErrorKind::ParseError(
+            None => error::ErrorKind::NetmuncherError(
                 format!("{}: unexpected end of file", locator.name()).into(),
             ).into(),
         },
-        ParseError::ExtraToken { token } => error::ErrorKind::ParseError(format!(
+        ParseError::ExtraToken { token } => error::ErrorKind::NetmuncherError(format!(
             "{}: extra token {}",
             locator.locate(token.0),
             token.1
         )).into(),
         ParseError::User { error } => error,
-    })
+    })?;
+
+    let mut result = ParseFileResult::new();
+    for tree in trees {
+        result.consider_tree(locator, tree)?;
+    }
+    Ok(result)
 }
 
 fn module_path<P: AsRef<Path>>(main_path: &Path, module_name: P) -> Option<PathBuf> {

@@ -9,7 +9,5 @@ component Invalid {
     prefix = "U";
     footprint = "foo";
 
-    Child {
-        A: SomeNet;
-    }
+    net SomeNet;
 }

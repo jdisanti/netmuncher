@@ -7,6 +7,15 @@
 // copied, modified, or distributed except according to those terms.
 //
 
+macro_rules! err {
+    ($msg:expr) => {
+        return Err(error::ErrorKind::NetmuncherError($msg.into()).into());
+    };
+    ($msg:expr $(, $prm:expr)*) => {
+        return Err(error::ErrorKind::NetmuncherError(format!($msg, $($prm,)*)).into());
+    };
+}
+
 error_chain! {
     types {
         Error, ErrorKind, ResultExt, Result;
@@ -22,32 +31,8 @@ error_chain! {
     }
 
     errors {
-        CircuitError(msg: String) {
-            description("circuit error")
-            display("{}", msg)
-        }
-        ComponentError(msg: String) {
-            description("component error")
-            display("{}", msg)
-        }
-        InstantiationError(msg: String) {
-            description("instantiation error")
-            display("{}", msg)
-        }
-        ParseError(msg: String) {
-            description("parse error")
-            display("{}", msg)
-        }
-        TokenizationError(msg: String) {
-            description("tokenization error")
-            display("{}", msg)
-        }
-        ERCError(msg: String) {
-            description("ERC error")
-            display("{}", msg)
-        }
-        ValidationError(msg: String) {
-            description("validation error")
+        NetmuncherError(msg: String) {
+            description("netmuncher error")
             display("{}", msg)
         }
     }

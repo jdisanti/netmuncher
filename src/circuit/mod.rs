@@ -17,7 +17,7 @@ pub use circuit::serialize_dot::DotSerializer;
 pub use circuit::serialize_kicad::KicadNetListSerializer;
 
 use circuit::instantiator::Instantiator;
-use error::{self, ErrorKind};
+use error;
 use parse;
 use parse::component::{Component, Instance, PinNum, PinType};
 use parse::source::Sources;
@@ -123,18 +123,18 @@ impl Circuit {
         Instantiator::new(&mut circuit, &components, global_nets).instantiate(&main_instance)?;
 
         if circuit.instances.is_empty() {
-            bail!(ErrorKind::CircuitError(format!(
+            err!(
                 "{}: empty circuit: no concrete components",
-                sources.locate(main_instance.tag),
-            )));
+                sources.locate(main_instance.tag)
+            );
         }
 
         for net in &circuit.nets {
             if net.nodes.len() <= 1 {
-                bail!(ErrorKind::CircuitError(format!(
+                err!(
                     "net named {} needs to have more than one connection",
-                    net.name,
-                )));
+                    net.name
+                );
             }
         }
 

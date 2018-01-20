@@ -41,8 +41,8 @@ fn unexpected_token() {
 #[test]
 fn duplicate_pin() {
     assert_eq!(
-        "Error: tests/errors/duplicate_pin.nm:1:1: error in component Main\nCaused by: duplicate \
-         pin named FOO\n",
+        "Error: tests/errors/duplicate_pin.nm:1:1: error in component Main\nCaused by: \
+         tests/errors/duplicate_pin.nm:3:5: duplicate pin named FOO\n",
         test("tests/errors/duplicate_pin.nm")
     );
 }
@@ -50,8 +50,8 @@ fn duplicate_pin() {
 #[test]
 fn wrong_start_pin() {
     assert_eq!(
-        "Error: tests/errors/wrong_start_pin.nm:2:1: error in component Foo\nCaused by: pin \
-         numbers must start at 1\n",
+        "Error: tests/errors/wrong_start_pin.nm:2:1: error in component Foo\nCaused by: \
+         tests/errors/wrong_start_pin.nm:3:5: pin numbers must start at 1\n",
         test("tests/errors/wrong_start_pin.nm")
     );
 }
@@ -59,8 +59,9 @@ fn wrong_start_pin() {
 #[test]
 fn duplicate_pin_number() {
     assert_eq!(
-        "Error: tests/errors/duplicate_pin_number.nm:1:1: error in component Foo\nCaused by: pin \
-         number 1 assigned to multiple names: BAR, FOO\n",
+        "Error: tests/errors/duplicate_pin_number.nm:1:1: error in component Foo\nCaused by: \
+         tests/errors/duplicate_pin_number.nm:3:5: pin number 1 assigned to multiple names: BAR, \
+         FOO\n",
         test("tests/errors/duplicate_pin_number.nm")
     );
 }
@@ -68,8 +69,8 @@ fn duplicate_pin_number() {
 #[test]
 fn duplicate_net() {
     assert_eq!(
-        "Error: tests/errors/duplicate_net.nm:1:1: error in component Main\nCaused by: duplicate \
-         net named A\n",
+        "Error: tests/errors/duplicate_net.nm:1:1: error in component Main\nCaused by: \
+         tests/errors/duplicate_net.nm:3:5: duplicate net named A\n",
         test("tests/errors/duplicate_net.nm")
     );
 }
@@ -84,6 +85,15 @@ fn footprint_required() {
 }
 
 #[test]
+fn duplicate_footprint() {
+    assert_eq!(
+        "Error: tests/errors/duplicate_footprint.nm:1:1: error in component Foo\nCaused by: \
+         tests/errors/duplicate_footprint.nm:3:5: component already has a footprint set\n",
+        test("tests/errors/duplicate_footprint.nm")
+    );
+}
+
+#[test]
 fn prefix_required() {
     assert_eq!(
         "Error: tests/errors/prefix_required.nm:1:1: concrete component Foo must specify a \
@@ -93,11 +103,31 @@ fn prefix_required() {
 }
 
 #[test]
+fn duplicate_prefix() {
+    assert_eq!(
+        "Error: tests/errors/duplicate_prefix.nm:1:1: error in component Foo\nCaused by: \
+         tests/errors/duplicate_prefix.nm:3:5: component already has a prefix set\n",
+        test("tests/errors/duplicate_prefix.nm")
+    );
+}
+
+#[test]
 fn no_instances_on_dumb_component() {
     assert_eq!(
-        "Error: tests/errors/no_instances_on_dumb_component.nm:8:1: concrete component Invalid \
-         cannot have instances\n",
+        "Error: tests/errors/no_instances_on_dumb_component.nm:8:1: error in component \
+         Invalid\nCaused by: tests/errors/no_instances_on_dumb_component.nm:12:5: concrete \
+         components cannot have instances\n",
         test("tests/errors/no_instances_on_dumb_component.nm")
+    );
+}
+
+#[test]
+fn no_nets_on_dumb_component() {
+    assert_eq!(
+        "Error: tests/errors/no_nets_on_dumb_component.nm:8:1: error in component Invalid\nCaused \
+         by: tests/errors/no_nets_on_dumb_component.nm:12:5: concrete components shouldn\'t have \
+         nets\n",
+        test("tests/errors/no_nets_on_dumb_component.nm")
     );
 }
 
@@ -235,7 +265,7 @@ fn invalid_quoted_symbol() {
 fn multiple_unit_specs() {
     assert_eq!(
         "Error: tests/errors/multiple_unit_specs.nm:1:1: error in component Foo\nCaused by: \
-         tests/errors/multiple_unit_specs.nm:1:1: cannot have multiple unit specifications in \
+         tests/errors/multiple_unit_specs.nm:10:5: cannot have multiple unit specifications in \
          component Foo\n",
         test("tests/errors/multiple_unit_specs.nm")
     );
@@ -245,7 +275,7 @@ fn multiple_unit_specs() {
 fn unit_minimum_one_pin() {
     assert_eq!(
         "Error: tests/errors/unit_minimum_one_pin.nm:1:1: error in component Foo\nCaused by: \
-         tests/errors/unit_minimum_one_pin.nm:1:1: unit definition in Foo must have at least one \
+         tests/errors/unit_minimum_one_pin.nm:8:5: unit definition in Foo must have at least one \
          pin\n",
         test("tests/errors/unit_minimum_one_pin.nm")
     );
@@ -255,7 +285,7 @@ fn unit_minimum_one_pin() {
 fn uneven_units() {
     assert_eq!(
         "Error: tests/errors/uneven_units.nm:1:1: error in component Foo\nCaused by: \
-         tests/errors/uneven_units.nm:1:1: unit definition in Foo doesn\'t have an equal number \
+         tests/errors/uneven_units.nm:8:5: unit definition in Foo doesn\'t have an equal number \
          of pin numbers for each pin\n",
         test("tests/errors/uneven_units.nm")
     );
@@ -264,8 +294,9 @@ fn uneven_units() {
 #[test]
 fn concrete_component_requires_pin_num() {
     assert_eq!(
-        "Error: tests/errors/concrete_component_require_pin_num.nm:1:1: concrete components must \
-         state pin numbers for pins\n",
+        "Error: tests/errors/concrete_component_require_pin_num.nm:1:1: error in component \
+         Foo\nCaused by: tests/errors/concrete_component_require_pin_num.nm:5:5: concrete \
+         components must state pin numbers for pins\n",
         test("tests/errors/concrete_component_require_pin_num.nm")
     );
 }
@@ -273,8 +304,36 @@ fn concrete_component_requires_pin_num() {
 #[test]
 fn abstract_component_no_pin_num() {
     assert_eq!(
-        "Error: tests/errors/abstract_component_no_pin_num.nm:1:1: abstract components shouldn\'t \
+        "Error: tests/errors/abstract_component_no_pin_num.nm:1:1: error in component Foo\nCaused \
+         by: tests/errors/abstract_component_no_pin_num.nm:2:5: abstract components shouldn\'t \
          state pin numbers for pins\n",
         test("tests/errors/abstract_component_no_pin_num.nm")
+    );
+}
+
+#[test]
+fn abstract_prefix() {
+    assert_eq!(
+        "Error: tests/errors/abstract_prefix.nm:1:1: error in component Main\nCaused by: \
+         tests/errors/abstract_prefix.nm:2:5: abstract components shouldn\'t have prefixes\n",
+        test("tests/errors/abstract_prefix.nm")
+    );
+}
+
+#[test]
+fn abstract_footprint() {
+    assert_eq!(
+        "Error: tests/errors/abstract_footprint.nm:1:1: error in component Main\nCaused by: \
+         tests/errors/abstract_footprint.nm:2:5: abstract components shouldn\'t have footprints\n",
+        test("tests/errors/abstract_footprint.nm")
+    );
+}
+
+#[test]
+fn duplicate_instance_value() {
+    assert_eq!(
+        "Error: tests/errors/duplicate_instance_value.nm:9:1: error in component Main\nCaused by: \
+         tests/errors/duplicate_instance_value.nm:10:5: multiple values specified for instance\n",
+        test("tests/errors/duplicate_instance_value.nm")
     );
 }

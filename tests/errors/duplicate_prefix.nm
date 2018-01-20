@@ -1,0 +1,4 @@
+component Foo {
+    prefix = "U";
+    prefix = "J";
+}

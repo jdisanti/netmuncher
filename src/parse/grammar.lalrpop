@@ -10,11 +10,11 @@
 #![allow(unknown_lints)]
 #![allow(clippy)]
 
+use parse::component::{PinType, PinNum, UnitPin};
 use error::{self, ErrorKind};
-use parse::component::*;
+use parse::ast::*;
 use parse::token::{Tok, validate_symbol};
 use parse::source::Locator;
-use parse::ParseFileResult;
 
 use lalrpop_util::ParseError;
 
@@ -113,15 +113,19 @@ NumList: Vec<u32> = {
     <Num> => vec![<>],
 };
 
-InstanceParam: Vec<(String, String)> = {
-    <left:SymbolList> ":" "noconnect" ";" => {
+Value: Value = {
+    <offset:@L> "value" "=" <val:Quote> ";" => Value::new(locator.tag(offset), val),
+};
+
+ConnectionMap: ConnectionMap = {
+    <offset:@L> <left:SymbolList> ":" "noconnect" ";" => {
         let result = left.iter().cloned().zip(left.iter().map(|_| "noconnect".into())).collect();
-        result
+        ConnectionMap::new(locator.tag(offset), result)
     },
     <offset:@L> <left:SymbolList> ":" <right:SymbolList> ";" =>? {
         if right.len() != left.len() && right.len() > 1 {
             return Err(ParseError::User {
-                error: ErrorKind::ParseError(
+                error: ErrorKind::NetmuncherError(
                     format!("{}: expected {} connections on the right, but found {}",
                         locator.locate(offset), left.len(), right.len())).into()
             });
@@ -132,64 +136,30 @@ InstanceParam: Vec<(String, String)> = {
         } else {
             left.iter().cloned().zip(right.iter().cloned()).collect()
         };
-        Ok(result)
+        Ok(ConnectionMap::new(locator.tag(offset), result))
     }
 };
 
-InstanceParams: Vec<(String, String)> = {
-    <ips:InstanceParams> <ip:InstanceParam> => {
-        let mut result = ips;
-        result.extend(ip.into_iter());
-        result
+InstanceParam: Ast = {
+    <Value> => Ast::Value(<>),
+    <ConnectionMap> => Ast::ConnectionMap(<>),
+};
+
+InstanceParams: Vec<Ast> = {
+    <ips:InstanceParams> <param:InstanceParam> => {
+        let mut params = ips;
+        params.push(param);
+        params
     },
-    <InstanceParam> => <>
+    <InstanceParam> => vec![<>],
 };
 
-InstanceValue: String = {
-    "value" "=" <val:Quote> ";" => val,
-};
-
-Instance: Instance = {
+InstanceDef: InstanceDef = {
     <offset:@L> <name:SymbolOrQuote> "{" <params:InstanceParams> "}" => {
-        Instance {
-            tag: locator.tag(offset),
-            name: name,
-            value: None,
-            connections: params,
-        }
+        InstanceDef::new(locator.tag(offset), name, params)
     },
-    <offset:@L> <name:SymbolOrQuote> "{" <value:InstanceValue> "}" => {
-        Instance {
-            tag: locator.tag(offset),
-            name: name,
-            value: Some(value),
-            connections: Vec::new(),
-        }
-    },
-    <offset:@L> <name:SymbolOrQuote> "{" <value:InstanceValue> <params:InstanceParams> "}" => {
-        Instance {
-            tag: locator.tag(offset),
-            name: name,
-            value: Some(value),
-            connections: params,
-        }
-    },
-    <offset:@L> <name:SymbolOrQuote> "{" "}" => {
-        Instance {
-            tag: locator.tag(offset),
-            name: name,
-            value: None,
-            connections: Vec::new(),
-        }
-    },
-    <offset:@L> <name:SymbolOrQuote> ";" => {
-        Instance {
-            tag: locator.tag(offset),
-            name: name,
-            value: None,
-            connections: Vec::new(),
-        }
-    }
+    <offset:@L> <name:SymbolOrQuote> "{" "}" => InstanceDef::new(locator.tag(offset), name, Vec::new()),
+    <offset:@L> <name:SymbolOrQuote> ";" => InstanceDef::new(locator.tag(offset), name, Vec::new()),
 };
 
 PinType: PinType = {
@@ -218,161 +188,104 @@ UnitPinList: Vec<UnitPin> = {
     <UnitPin> => vec![<>],
 };
 
-Unit: Vec<UnitPin> = {
-    "unit" "{" <UnitPinList> "}" => <>,
-    "unit" "{" "}" => Vec::new(),
+Unit: Unit = {
+    <offset:@L> "unit" "{" <pl:UnitPinList> "}" => Unit::new(locator.tag(offset), pl),
+    <offset:@L> "unit" "{" "}" => Unit::new(locator.tag(offset), Vec::new()),
 };
 
-StartComponent: Component = {
-    <offset:@L> "abstract" "component" <name:SymbolOrQuote> "{" => Component::new(locator.tag(offset), name, true),
-    <offset:@L> "component" <name:SymbolOrQuote> "{" => Component::new(locator.tag(offset), name, false),
+Footprint: Footprint = {
+    <offset:@L> "footprint" "=" <t:Quote> ";" => Footprint::new(locator.tag(offset), t),
 };
 
-ContinueComponent: Component = {
-    <cc:ContinueComponent> "footprint" "=" <t:Quote> ";" => {
-        let mut component = cc;
-        component.set_footprint(t);
-        component
-    },
-    <cc:ContinueComponent> "prefix" "=" <t:Quote> ";" => {
-        let mut component = cc;
-        component.set_prefix(t);
-        component
-    },
-    <cc:ContinueComponent> "value" "=" <t:Quote> ";" => {
-        let mut component = cc;
-        component.set_default_value(t);
-        component
-    },
-    <offset:@L> <cc:ContinueComponent> "pin" <names:SymbolList> ":" <pt:PinType> ";" =>? {
-        let mut component = cc;
-        if !component.is_abstract() {
-            return Err(ParseError::User {
-                error: ErrorKind::ParseError(
-                    format!("{}: concrete components must state pin numbers for pins",
-                        locator.locate(offset))).into()
-            });
-        }
+Prefix: Prefix = {
+    <offset:@L> "prefix" "=" <t:Quote> ";" => Prefix::new(locator.tag(offset), t),
+};
 
-        let mut next_pin_num = (component.abstract_pins().len() + 1) as u32;
+AbstractPins: Vec<AbstractPin> = {
+    <offset:@L> "pin" <names:SymbolList> ":" <pin_type:PinType> ";" => {
+        let tag = locator.tag(offset);
+        let mut result = Vec::new();
         for name in names {
-            component.add_pin(Pin {
-                name: name,
-                typ: pt,
-                num: PinNum(next_pin_num),
-            }).map_err(|e| {
-                ParseError::User {
-                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
-                        format!("{}: error in component {}", locator.locate(offset), component.name())
-                    )))
-                }
-            })?;
-            next_pin_num += 1;
+            result.push(AbstractPin::new(tag, name, pin_type));
         }
-        Ok(component)
-    },
-    <offset:@L> <cc:ContinueComponent> "pin" <names:SymbolList> ":" <pt:PinType> "=" <nl:NumList> ";" =>? {
-        let mut component = cc;
-        if component.is_abstract() {
-            return Err(ParseError::User {
-                error: ErrorKind::ParseError(
-                    format!("{}: abstract components shouldn't state pin numbers for pins",
-                        locator.locate(offset))).into()
-            });
-        }
+        result
+    }
+};
+
+ConcretePins: Vec<ConcretePin> = {
+    <offset:@L> "pin" <names:SymbolList> ":" <pin_type:PinType> "=" <nl:NumList> ";" =>? {
+        let tag = locator.tag(offset);
 
         if names.len() != nl.len() {
             return Err(ParseError::User {
-                error: ErrorKind::ParseError(
+                error: ErrorKind::NetmuncherError(
                     format!("{}: expected {} pin numbers on the right, but found {}",
                         locator.locate(offset), names.len(), nl.len())).into()
             });
         }
 
-        for (index, name) in names.iter().enumerate() {
-            component.add_pin(Pin {
-                name: name.clone(),
-                typ: pt,
-                num: PinNum(nl[index]),
-            }).map_err(|e| {
-                ParseError::User {
-                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
-                        format!("{}: error in component {}", locator.locate(offset), component.name())
-                    )))
-                }
-            })?;
+        let mut result = Vec::new();
+        for (index, name) in names.into_iter().enumerate() {
+            result.push(ConcretePin::new(tag, name, pin_type, PinNum(nl[index])));
         }
-        Ok(component)
-    },
-    <offset:@L> <cc:ContinueComponent> "net" <sl:SymbolList> ";" =>? {
-        let mut component = cc;
-        component.nets.extend(sl.into_iter())
-            .map_err(|e| {
-                ParseError::User {
-                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
-                        format!("{}: error in component {}", locator.locate(offset), component.name())
-                    )))
-                }
-            })?;
-        Ok(component)
-    },
-    <offset:@L> <cc:ContinueComponent> <unit_pins:Unit> =>? {
-        let mut component = cc;
-        component.add_unit_pins(locator, offset, unit_pins)
-            .map_err(|e| {
-                ParseError::User {
-                    error: e.chain_err(|| error::Error::from_kind(ErrorKind::ParseError(
-                        format!("{}: error in component {}", locator.locate(offset), component.name())
-                    )))
-                }
-            })?;
-        Ok(component)
-    },
-    <cc:ContinueComponent> <inst:Instance> => {
-        let mut component = cc;
-        component.instances.push(inst);
-        component
-    },
-    <StartComponent> => <>,
+        Ok(result)
+    }
 };
 
-CompleteComponent: Component = {
-    <ContinueComponent> "}" => <>
+Nets: Nets = {
+    <offset:@L> "net" <sl:SymbolList> ";" => Nets::new(locator.tag(offset), sl),
 };
 
-Require: String = {
-    "require" <module:Quote> ";" => module,
+ComponentParam: Ast = {
+    <Footprint> => Ast::Footprint(<>),
+    <Prefix> => Ast::Prefix(<>),
+    <Value> => Ast::Value(<>),
+    <Nets> => Ast::Nets(<>),
+    <AbstractPins> => Ast::AbstractPins(<>),
+    <ConcretePins> => Ast::ConcretePins(<>),
+    <Unit> => Ast::Unit(<>),
+    <InstanceDef> => Ast::InstanceDef(<>),
 };
 
-pub Source: ParseFileResult = {
-    <r:Source> "global" "net" <sl:SymbolList> ";" => {
-        let mut result = r;
-        result.global_nets.extend(sl.into_iter());
+ComponentParams: Vec<Ast> = {
+    <params:ComponentParams> <param:ComponentParam> => {
+        let mut result = params;
+        result.push(param);
         result
     },
-    <r:Source> <module:Require> => {
-        let mut result = r;
-        result.requires.push(module);
+    <ComponentParam> => vec![<>],
+};
+
+ComponentDef: ComponentDef = {
+    <offset:@L> "abstract" "component" <name:SymbolOrQuote> "{" <params:ComponentParams> "}" => {
+        ComponentDef::new(locator.tag(offset), name, true, params)
+    },
+    <offset:@L> "abstract" "component" <name:SymbolOrQuote> "{" "}" => {
+        ComponentDef::new(locator.tag(offset), name, true, Vec::new())
+    },
+    <offset:@L> "component" <name:SymbolOrQuote> "{" <params:ComponentParams> "}" => {
+        ComponentDef::new(locator.tag(offset), name, false, params)
+    },
+    <offset:@L> "component" <name:SymbolOrQuote> "{" "}" => {
+        ComponentDef::new(locator.tag(offset), name, false, Vec::new())
+    },
+};
+
+Require: Require = {
+    <offset:@L> "require" <module:Quote> ";" => Require::new(locator.tag(offset), module),
+};
+
+Ast: Ast = {
+    <Require> => Ast::Require(<>),
+    "global" <Nets> => Ast::Nets(<>),
+    <ComponentDef> => Ast::ComponentDef(<>),
+};
+
+pub Source: Vec<Ast> = {
+    <s:Source> <ast:Ast> => {
+        let mut result = s;
+        result.push(ast);
         result
     },
-    <r:Source> <component:CompleteComponent> => {
-        let mut result = r;
-        result.components.push(component);
-        result
-    },
-    "global" "net" <sl:SymbolList> ";" => {
-        let mut result = ParseFileResult::new();
-        result.global_nets.extend(sl.into_iter());
-        result
-    },
-    <module:Require> => {
-        let mut result = ParseFileResult::new();
-        result.requires.push(module);
-        result
-    },
-    <component:CompleteComponent> => {
-        let mut result = ParseFileResult::new();
-        result.components.push(component);
-        result
-    },
+    <Ast> => vec![<>],
 };

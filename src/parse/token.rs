@@ -113,17 +113,10 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                         if c == '.' {
                             tokens.push((start, Tok::DotDot, start + 2));
                         } else {
-                            bail!(ErrorKind::TokenizationError(format!(
-                                "{}: expected '.', found '{}'",
-                                locator.locate(start),
-                                c
-                            )));
+                            err!("{}: expected '.', found '{}'", locator.locate(start), c);
                         }
                     } else {
-                        bail!(ErrorKind::TokenizationError(format!(
-                            "{}: unexpected dot",
-                            locator.locate(start)
-                        )));
+                        err!("{}: unexpected dot", locator.locate(start));
                     }
                 }
                 '"' => {
@@ -136,17 +129,10 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                         if c == '/' {
                             drop(take_while(None, &mut chars, |c| c != '\n'));
                         } else {
-                            bail!(ErrorKind::TokenizationError(format!(
-                                "{}: expected '/', found '{}'",
-                                locator.locate(start),
-                                c
-                            )));
+                            err!("{}: expected '/', found '{}'", locator.locate(start), c);
                         }
                     } else {
-                        bail!(ErrorKind::TokenizationError(format!(
-                            "{}: unexpected '/'",
-                            locator.locate(start),
-                        )));
+                        err!("{}: unexpected '/'", locator.locate(start));
                     }
                 }
                 _ if c.is_digit(10) => {
@@ -168,7 +154,9 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
 
                     match &symbol as &str {
                         "abstract" => tokens.push((start, Tok::KeywordAbstract, start + 8)),
-                        "bidirectional" => tokens.push((start, Tok::KeywordBidirectional, start + 13)),
+                        "bidirectional" => {
+                            tokens.push((start, Tok::KeywordBidirectional, start + 13))
+                        }
                         "component" => tokens.push((start, Tok::KeywordComponent, start + 9)),
                         "footprint" => tokens.push((start, Tok::KeywordFootprint, start + 9)),
                         "global" => tokens.push((start, Tok::KeywordGlobal, start + 6)),
@@ -190,11 +178,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                     continue;
                 }
                 _ => {
-                    bail!(ErrorKind::TokenizationError(format!(
-                        "{}: unexpected character: {}",
-                        locator.locate(start),
-                        c
-                    )));
+                    err!("{}: unexpected character: {}", locator.locate(start), c);
                 }
             }
         }
@@ -236,7 +220,7 @@ pub fn validate_symbol(
     for c in val.chars() {
         if !valid_char(c) {
             return Err(ParseError::User {
-                error: ErrorKind::ParseError(format!(
+                error: ErrorKind::NetmuncherError(format!(
                     "{}: invalid character '{}' in symbol. Symbols must be alphanumeric with \
                      underscores.",
                     locator.locate(offset),

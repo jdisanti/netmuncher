@@ -17,12 +17,12 @@ abstract component Main {
     net A, B;
 
     Foo {
-        A: A,
-        B: B,
+        A: A;
+        B: B;
     }
 
     Foo {
-        A: A,
-        B: B,
+        A: A;
+        B: B;
     }
 }

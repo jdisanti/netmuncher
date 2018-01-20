@@ -1,0 +1,14 @@
+component Foo {
+    prefix = "U";
+    footprint = "asdf";
+
+    pin A: input = 1;
+    pin B: output = 2;
+}
+
+abstract component Main {
+    Foo {
+        value = "asdf";
+        value = "fdsa";
+    }
+}

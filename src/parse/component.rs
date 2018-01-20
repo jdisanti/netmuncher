@@ -10,17 +10,10 @@
 use std::fmt;
 
 use error;
-use parse::source::{Locator, Sources, SrcTag};
+use parse::source::{Sources, SrcTag};
 use serde::{Serialize, Serializer};
 
-macro_rules! err {
-    ($msg:expr) => {
-        return Err(error::ErrorKind::ComponentError($msg.into()).into());
-    };
-    ($msg:expr $(, $prm:expr)*) => {
-        return Err(error::ErrorKind::ComponentError(format!($msg, $($prm,)*)).into());
-    };
-}
+pub use super::validator::Validator;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
 pub enum PinType {
@@ -319,8 +312,12 @@ impl Component {
         self.footprint.as_ref().unwrap()
     }
 
-    pub fn set_footprint(&mut self, footprint: String) {
+    pub fn set_footprint(&mut self, footprint: String) -> error::Result<()> {
+        if self.footprint.is_some() {
+            err!("component already has a footprint set");
+        }
         self.footprint = Some(footprint);
+        Ok(())
     }
 
     pub fn prefix(&self) -> &str {
@@ -328,8 +325,12 @@ impl Component {
         self.prefix.as_ref().unwrap()
     }
 
-    pub fn set_prefix(&mut self, prefix: String) {
+    pub fn set_prefix(&mut self, prefix: String) -> error::Result<()> {
+        if self.prefix.is_some() {
+            err!("component already has a prefix set");
+        }
         self.prefix = Some(prefix);
+        Ok(())
     }
 
     pub fn validate_parameters(&self, units: &Sources) -> error::Result<()> {
@@ -382,24 +383,17 @@ impl Component {
         Ok(())
     }
 
-    pub fn add_unit_pins(
-        &mut self,
-        locator: &Locator,
-        offset: usize,
-        mut unit_pins: Vec<UnitPin>,
-    ) -> error::Result<()> {
+    pub fn add_unit_pins(&mut self, mut unit_pins: Vec<UnitPin>) -> error::Result<()> {
         if self.has_units() {
             err!(
-                "{}: cannot have multiple unit specifications in component {}",
-                locator.locate(offset),
+                "cannot have multiple unit specifications in component {}",
                 self.name
             );
         }
 
         if unit_pins.is_empty() {
             err!(
-                "{}: unit definition in {} must have at least one pin",
-                locator.locate(offset),
+                "unit definition in {} must have at least one pin",
                 self.name
             );
         }
@@ -409,9 +403,7 @@ impl Component {
         pin_lens.dedup();
         if 1 != pin_lens.len() {
             err!(
-                "{}: unit definition in {} doesn't have an equal number of pin numbers for each \
-                 pin",
-                locator.locate(offset),
+                "unit definition in {} doesn't have an equal number of pin numbers for each pin",
                 self.name
             );
         }
