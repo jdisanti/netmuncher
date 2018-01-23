@@ -107,6 +107,24 @@ impl<'input> Validator<'input> {
                 }
                 self.local_net_pins.clear();
             }
+            for &(ref left, ref right) in &component.connects {
+                if component.abstract_pins().find_by_name(left).is_none() {
+                    err!(
+                        "{}: could not find pin named '{}' to connect to '{}'",
+                        self.sources.locate(component.tag),
+                        left,
+                        right
+                    );
+                }
+                if component.abstract_pins().find_by_name(right).is_none() {
+                    err!(
+                        "{}: could not find pin named '{}' to connect to '{}'",
+                        self.sources.locate(component.tag),
+                        right,
+                        left
+                    );
+                }
+            }
             self.validate_nets(&net_pins)?;
         }
         Ok(())

@@ -34,6 +34,7 @@ pub enum Tok {
     KeywordAbstract,
     KeywordBidirectional,
     KeywordComponent,
+    KeywordConnect,
     KeywordFootprint,
     KeywordGlobal,
     KeywordInput,
@@ -71,6 +72,7 @@ impl fmt::Display for Tok {
             Tok::KeywordAbstract => write!(f, "abstract"),
             Tok::KeywordBidirectional => write!(f, "bidirectional"),
             Tok::KeywordComponent => write!(f, "component"),
+            Tok::KeywordConnect => write!(f, "connect"),
             Tok::KeywordFootprint => write!(f, "footprint"),
             Tok::KeywordGlobal => write!(f, "global"),
             Tok::KeywordInput => write!(f, "input"),
@@ -158,6 +160,7 @@ pub fn tokenize(locator: &Locator, s: &str) -> error::Result<Vec<(usize, Tok, us
                             tokens.push((start, Tok::KeywordBidirectional, start + 13))
                         }
                         "component" => tokens.push((start, Tok::KeywordComponent, start + 9)),
+                        "connect" => tokens.push((start, Tok::KeywordConnect, start + 7)),
                         "footprint" => tokens.push((start, Tok::KeywordFootprint, start + 9)),
                         "global" => tokens.push((start, Tok::KeywordGlobal, start + 6)),
                         "input" => tokens.push((start, Tok::KeywordInput, start + 5)),

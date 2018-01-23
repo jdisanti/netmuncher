@@ -1,0 +1,23 @@
+abstract component Foo {
+    pin A: input;
+    pin B: output;
+
+    net C;
+
+    connect A: C;
+    connect B: C;
+}
+
+abstract component Main {
+    net X, Y;
+
+    Foo {
+        A: X;
+        B: Y;
+    }
+
+    Foo {
+        A: Y;
+        B: X;
+    }
+}

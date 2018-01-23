@@ -133,6 +133,7 @@ pub struct Instantiator<'input> {
     global_nets: &'input [String],
     ref_gen: ReferenceGenerator,
     unit_tracker: UnitTracker<'input>,
+    aliases: BTreeMap<String, Vec<String>>,
 }
 
 impl<'input> Instantiator<'input> {
@@ -147,6 +148,7 @@ impl<'input> Instantiator<'input> {
             global_nets: global_nets,
             ref_gen: ReferenceGenerator::new(""),
             unit_tracker: UnitTracker::new(),
+            aliases: BTreeMap::new(),
         }
     }
 
@@ -213,7 +215,40 @@ impl<'input> Instantiator<'input> {
             self.instantiate_internal(&child_ctx)?;
         }
         GroupBuilder::build(group);
+
+        for &(ref left, ref right) in &component.connects {
+            let mapped = (new_net_map.get(left), new_net_map.get(right));
+            if let (Some(mapped_left), Some(mapped_right)) = mapped {
+                if mapped_left != "noconnect" && mapped_right != "noconnect" {
+                    self.connect_nets(mapped_left, mapped_right);
+                }
+            } else {
+                unreachable!("validation should catch this");
+            }
+        }
+
         Ok(())
+    }
+
+    fn connect_nets(&mut self, left: &String, right: &String) {
+        if !self.aliases.contains_key(right) {
+            self.aliases.insert(right.clone(), Vec::new());
+        }
+        self.aliases.get_mut(right).unwrap().push(left.clone());
+
+        let (right_net_index, _) = self.circuit
+            .nets
+            .iter()
+            .enumerate()
+            .find(|&(_, ref n)| n.name == *right)
+            .unwrap();
+        let right_net = self.circuit.nets.remove(right_net_index);
+
+        self.circuit
+            .find_net_mut(left)
+            .unwrap()
+            .nodes
+            .extend(right_net.nodes.into_iter());
     }
 
     fn instantiate_unit(
@@ -301,9 +336,18 @@ impl<'input> Instantiator<'input> {
     fn add_to_net(&mut self, net: &str, node: Node) -> error::Result<()> {
         if let Some(net) = self.circuit.find_net_mut(net) {
             net.nodes.push(node);
-        } else {
-            unreachable!()
+            return Ok(());
         }
-        Ok(())
+
+        if let Some(aliases) = self.aliases.get(net) {
+            for alias in aliases {
+                if let Some(net) = self.circuit.find_net_mut(alias) {
+                    net.nodes.push(node);
+                    return Ok(());
+                }
+            }
+        }
+
+        unreachable!()
     }
 }

@@ -155,6 +155,16 @@ impl ParseFileResult {
                     component.add_pin(Pin::new(pin.name, pin.typ, pin.num))?;
                 }
             }
+            Ast::Connect(connect) => {
+                if !component.is_abstract() {
+                    err!("concrete components cannot have internal connects");
+                }
+                if connect.left.len() != connect.right.len() {
+                    err!("must connect the same number of pins/nets on the left and right");
+                }
+                let zipped = connect.left.into_iter().zip(connect.right.into_iter());
+                component.connects.extend(zipped);
+            }
             Ast::Footprint(footprint) => {
                 if component.is_abstract() {
                     err!("abstract components shouldn't have footprints");

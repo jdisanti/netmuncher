@@ -62,3 +62,10 @@ fn units() {
     let actual = compile("tests/valid/units.nm");
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn connect() {
+    let expected = load("tests/valid/connect.net");
+    let actual = compile("tests/valid/connect.nm");
+    assert_eq!(expected, actual);
+}

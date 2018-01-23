@@ -41,6 +41,7 @@ extern {
         "abstract" => Tok::KeywordAbstract,
         "bidirectional" => Tok::KeywordBidirectional,
         "component" => Tok::KeywordComponent,
+        "connect" => Tok::KeywordConnect,
         "footprint" => Tok::KeywordFootprint,
         "global" => Tok::KeywordGlobal,
         "input" => Tok::KeywordInput,
@@ -236,15 +237,22 @@ Nets: Nets = {
     <offset:@L> "net" <sl:SymbolList> ";" => Nets::new(locator.tag(offset), sl),
 };
 
+Connect: Connect = {
+    <offset:@L> "connect" <left:SymbolList> ":" <right:SymbolList> ";" => {
+        Connect::new(locator.tag(offset), left, right)
+    }
+};
+
 ComponentParam: Ast = {
-    <Footprint> => Ast::Footprint(<>),
-    <Prefix> => Ast::Prefix(<>),
-    <Value> => Ast::Value(<>),
-    <Nets> => Ast::Nets(<>),
     <AbstractPins> => Ast::AbstractPins(<>),
     <ConcretePins> => Ast::ConcretePins(<>),
-    <Unit> => Ast::Unit(<>),
+    <Connect> => Ast::Connect(<>),
+    <Footprint> => Ast::Footprint(<>),
     <InstanceDef> => Ast::InstanceDef(<>),
+    <Nets> => Ast::Nets(<>),
+    <Prefix> => Ast::Prefix(<>),
+    <Unit> => Ast::Unit(<>),
+    <Value> => Ast::Value(<>),
 };
 
 ComponentParams: Vec<Ast> = {

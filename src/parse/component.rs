@@ -242,6 +242,7 @@ pub struct Component {
     pub nets: NetList,
     pub instances: Vec<Instance>,
     pub units: Vec<Unit>,
+    pub connects: Vec<(String, String)>,
 }
 
 impl Component {
@@ -256,6 +257,7 @@ impl Component {
             nets: Default::default(),
             instances: Vec::new(),
             units: vec![Unit::new()],
+            connects: Vec::new(),
         }
     }
 

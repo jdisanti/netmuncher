@@ -1,0 +1,43 @@
+component Jumper {
+    prefix = "J";
+    footprint = "jumper";
+
+    pin Y[0:4]: passive = (1..5);
+}
+
+abstract component ConnectTheNets {
+    pin A: input;
+    pin B: output;
+
+    connect A: B;
+}
+
+abstract component ConnectTheBusses {
+    pin A[0:3]: input;
+    pin B[0:3]: output;
+
+    connect A[0:3]: B[0:3];
+}
+
+abstract component Main {
+    net left[0:4];
+    net right[0:4];
+
+    ConnectTheNets {
+        A: left[0];
+        B: right[0];
+    }
+
+    ConnectTheBusses {
+        A[0:3]: left[1:4];
+        B[0:3]: right[1:4];
+    }
+
+    Jumper {
+        Y[0:4]: left[0:4];
+    }
+
+    Jumper {
+        Y[0:4]: right[0:4];
+    }
+}

@@ -337,3 +337,12 @@ fn duplicate_instance_value() {
         test("tests/errors/duplicate_instance_value.nm")
     );
 }
+
+#[test]
+fn connect_nets() {
+    assert_eq!(
+        "Error: tests/errors/connect_nets.nm:1:1: could not find pin named \'C\' to connect to \
+         \'A\'\n",
+        test("tests/errors/connect_nets.nm")
+    );
+}

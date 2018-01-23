@@ -56,6 +56,19 @@ impl Tagged for ConcretePin {
 }
 
 #[derive(Debug, new)]
+pub struct Connect {
+    pub tag: SrcTag,
+    pub left: Vec<String>,
+    pub right: Vec<String>,
+}
+
+impl Tagged for Connect {
+    fn tag(&self) -> SrcTag {
+        self.tag
+    }
+}
+
+#[derive(Debug, new)]
 pub struct Footprint {
     pub tag: SrcTag,
     pub footprint: String,
@@ -158,6 +171,7 @@ pub enum Ast {
     ComponentDef(ComponentDef),
     ConcretePins(Vec<ConcretePin>),
     ConnectionMap(ConnectionMap),
+    Connect(Connect),
     Footprint(Footprint),
     InstanceDef(InstanceDef),
     Nets(Nets),
@@ -175,6 +189,7 @@ impl Tagged for Ast {
             ComponentDef(ref def) => def.tag(),
             ConcretePins(ref pins) => pins[0].tag(),
             ConnectionMap(ref map) => map.tag(),
+            Connect(ref conn) => conn.tag(),
             Footprint(ref footprint) => footprint.tag(),
             InstanceDef(ref def) => def.tag(),
             Nets(ref nets) => nets.tag(),
