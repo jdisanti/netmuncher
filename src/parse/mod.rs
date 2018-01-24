@@ -49,14 +49,16 @@ pub fn parse(file_name: &str) -> error::Result<ParseResult> {
     while let Some(path) = modules_to_require.pop() {
         if !modules_required.contains(&path) {
             modules_required.push(path.clone());
-            let source_id = sources.push_source(path.to_str().unwrap().into(), load_file(path)?);
+            let source_id = sources.push_source(path.to_str().unwrap().into(), load_file(&path)?);
             let locator = Locator::new(&sources, source_id);
             let parse_result = parse_file(&locator, sources.code(source_id))?;
+
+            let path_parent = path.parent().unwrap();
             modules_to_require.extend(
                 parse_result
                     .requires
                     .into_iter()
-                    .filter_map(|r| module_path(&main_path, &r)),
+                    .filter_map(|r| module_path(&path_parent, &r)),
             );
             global_nets.extend(parse_result.global_nets.into_iter());
             components.extend(parse_result.components.into_iter());
