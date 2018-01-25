@@ -54,12 +54,17 @@ pub fn parse(file_name: &str) -> error::Result<ParseResult> {
             let parse_result = parse_file(&locator, sources.code(source_id))?;
 
             let path_parent = path.parent().unwrap();
-            modules_to_require.extend(
-                parse_result
-                    .requires
-                    .into_iter()
-                    .filter_map(|r| module_path(&path_parent, &r)),
-            );
+            for require in parse_result.requires {
+                if let Some(module_path) = module_path(&path_parent, &require.module) {
+                    modules_to_require.push(module_path);
+                } else {
+                    err!(
+                        "{}: cannot find file named \"{}\"",
+                        sources.locate(require.tag),
+                        require.module
+                    );
+                }
+            }
             global_nets.extend(parse_result.global_nets.into_iter());
             components.extend(parse_result.components.into_iter());
         }
@@ -76,7 +81,7 @@ pub fn parse(file_name: &str) -> error::Result<ParseResult> {
 
 #[derive(Default)]
 pub struct ParseFileResult {
-    pub requires: Vec<String>,
+    pub requires: Vec<ast::Require>,
     pub components: Vec<Component>,
     pub global_nets: Vec<String>,
 }
@@ -89,7 +94,7 @@ impl ParseFileResult {
     fn consider_tree(&mut self, locator: &Locator, tree: Ast) -> error::Result<()> {
         match tree {
             Ast::Require(require) => {
-                self.requires.push(require.module);
+                self.requires.push(require);
             }
             Ast::Nets(global_nets) => {
                 self.global_nets.extend(global_nets.nets.into_iter());

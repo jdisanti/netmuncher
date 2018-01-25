@@ -1,0 +1,6 @@
+require "a_file_that_doesnt_exist.nm";
+
+abstract component Main {
+    SomeComponentThatShouldHaveBeenImported;
+    SomeComponentThatShouldHaveBeenImported;
+}

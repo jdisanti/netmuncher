@@ -346,3 +346,12 @@ fn connect_nets() {
         test("tests/errors/connect_nets.nm")
     );
 }
+
+#[test]
+fn require_doesnt_exist() {
+    assert_eq!(
+        "Error: tests/errors/require_doesnt_exist.nm:1:1: cannot find file named \
+         \"a_file_that_doesnt_exist.nm\"\n",
+        test("tests/errors/require_doesnt_exist.nm")
+    );
+}
