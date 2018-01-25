@@ -257,7 +257,7 @@ dependencies = [
 
 [[package]]
 name = "netmuncher"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "clap 2.29.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "derive-new 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",

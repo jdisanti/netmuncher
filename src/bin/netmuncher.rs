@@ -21,7 +21,7 @@ use netmuncher::diagram::Diagram;
 
 fn main() {
     let matches = clap::App::new("netmuncher")
-        .version("0.1")
+        .version("0.5.0")
         .author("John DiSanti")
         .about("Hierarchical circuit definition to netlist transformer")
         .arg(
