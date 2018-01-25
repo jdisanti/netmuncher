@@ -138,17 +138,29 @@ impl Circuit {
             }
         }
 
-        let net_names: Vec<String> = circuit.nets.iter().map(|n| n.name.clone()).collect();
-        for net_name in &net_names {
-            if let Some(dot_index) = net_name.find('.') {
-                let simplified_name = &net_name[0..dot_index];
-                if !net_names
-                    .iter()
-                    .find(|n: &&String| *n == simplified_name)
-                    .is_some()
-                {
-                    circuit.find_net_mut(&net_name).unwrap().name = simplified_name.into();
+        let mut net_names: Vec<String> = circuit.nets.iter().map(|n| n.name.clone()).collect();
+        let len = net_names.len();
+        for i in 0..len {
+            let replacement = {
+                let net_name = &net_names[i];
+                if let Some(dot_index) = net_name.find('.') {
+                    let simplified_name = &net_name[0..dot_index];
+                    if !net_names
+                        .iter()
+                        .find(|n: &&String| *n == simplified_name)
+                        .is_some()
+                    {
+                        circuit.find_net_mut(&net_name).unwrap().name = simplified_name.into();
+                        Some(String::from(simplified_name))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
                 }
+            };
+            if let Some(replacement) = replacement {
+                net_names[i] = replacement;
             }
         }
 

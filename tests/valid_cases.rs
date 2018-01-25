@@ -69,3 +69,10 @@ fn connect() {
     let actual = compile("tests/valid/connect.nm");
     assert_eq!(expected, actual);
 }
+
+#[test]
+fn logic_switch() {
+    let expected = load("tests/valid/logic_switch.net");
+    let actual = compile("tests/valid/logic_switch.nm");
+    assert_eq!(expected, actual);
+}

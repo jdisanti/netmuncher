@@ -1,0 +1,64 @@
+component Conn01x02 {
+    prefix = "J";
+    footprint = "Pin_Headers:Pin_Header_Straight_1x02_Pitch2.54mm";
+
+    pin P[1:2]: passive = (1..2);
+}
+
+component Conn01x08 {
+    prefix = "J";
+    footprint = "Pin_Headers:Pin_Header_Straight_1x08_Pitch2.54mm";
+
+    pin P[1:8]: passive = (1..8);
+}
+
+component DIPSwitchSPDTx8 {
+    prefix = "S";
+    footprint = "project_footprints:TDS08";
+
+    pin P[1:8]: passive = (1..8);
+    pin HI: input = 9;
+    pin LO: input = 10;
+}
+
+abstract component ByteSwitch {
+    pin HI: input;
+    pin LO: input;
+
+    net P[1:8];
+
+    Conn01x08 {
+        P[1:8]: P[1:8];
+    }
+
+    DIPSwitchSPDTx8 {
+        HI: HI;
+        LO: LO;
+        P[1:8]: P[1:8];
+    }
+}
+
+abstract component Main {
+    net HI, LO;
+
+    Conn01x02 {
+        value = "Power";
+        P[1]: HI;
+        P[2]: LO;
+    }
+
+    ByteSwitch {
+        HI: HI;
+        LO: LO;
+    }
+
+    ByteSwitch {
+        HI: HI;
+        LO: LO;
+    }
+
+    ByteSwitch {
+        HI: HI;
+        LO: LO;
+    }
+}
