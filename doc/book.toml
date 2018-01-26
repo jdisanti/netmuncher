@@ -1,0 +1,4 @@
+[book]
+authors = ["John DiSanti <johndisanti@gmail.com>"]
+multilingual = false
+src = "src"
